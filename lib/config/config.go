@@ -150,16 +150,19 @@ func LoadGuild(id *string) (*Guild, error) {
 func SaveGuild(id *string, guild *Guild) error {
 	if guild.Prefix == CurrentConfig.Guild.Prefix && guild.Lang == CurrentConfig.Guild.Lang && guild.Model.Chat.Default == CurrentConfig.Guild.Model.Chat.Default && guild.Model.Chat.Latest_3Dot5 == CurrentConfig.Guild.Model.Chat.Latest_3Dot5 && guild.Model.Chat.Latest_4 == CurrentConfig.Guild.Model.Chat.Latest_4 && guild.Model.Image.Default == CurrentConfig.Guild.Model.Image.Default && guild.Reply == CurrentConfig.Guild.Reply && guild.MaxTokens == CurrentConfig.Guild.MaxTokens {
 		mutex.Lock()
+		defer mutex.Unlock()
+
 		err := os.Remove(CurrentConfig.Config + *id + ".yaml")
 		if err != nil {
 			return err
 		}
 		cachedGuild.Delete(*id)
-		mutex.Unlock()
 		return nil
 	}
 
 	mutex.Lock()
+	defer mutex.Unlock()
+
 	data, err := yaml.Marshal(guild)
 	if err != nil {
 		return err
@@ -176,11 +179,12 @@ func SaveGuild(id *string, guild *Guild) error {
 
 func ResetGuild(id *string, guild *Guild) error {
 	mutex.Lock()
+	defer mutex.Unlock()
+
 	err := os.Remove(CurrentConfig.Config + *id + ".yaml")
 	if err != nil {
 		return err
 	}
-	mutex.Unlock()
 
 	cachedGuild.Delete(*id)
 	return nil

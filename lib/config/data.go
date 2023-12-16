@@ -177,6 +177,8 @@ func initData() Data {
 
 func SaveData(data *Data, id *string, model *string, size string, quality string, promptToken *int, completionToken *int, visionToken *int) error {
 	mutex.Lock()
+	defer mutex.Unlock()
+
 	switch *model {
 	case openai.GPT432K0613:
 		data.Tokens.GPT432K0613.Prompt += *promptToken
@@ -259,7 +261,6 @@ func SaveData(data *Data, id *string, model *string, size string, quality string
 		return err
 	}
 
-	mutex.Unlock()
 	return nil
 }
 
@@ -272,11 +273,12 @@ func runCron() {
 
 func ResetTokens() {
 	mutex.Lock()
+	defer mutex.Unlock()
+
 	err := os.RemoveAll(CurrentConfig.Data)
 	if err != nil {
 		log.Fatal("Fatal remove files", err)
 	}
-	mutex.Unlock()
 }
 
 func getRate() {
