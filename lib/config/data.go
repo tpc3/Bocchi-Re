@@ -250,10 +250,12 @@ func SaveData(data *Data, id *string, model *string, size string, quality string
 
 	newdata, err := yaml.Marshal(data)
 	if err != nil {
+		log.Print(err)
 		return err
 	}
 	err = os.WriteFile(CurrentConfig.Data+*id+".yaml", newdata, 0666)
 	if err != nil {
+		log.Print(err)
 		return err
 	}
 
