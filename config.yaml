@@ -1,0 +1,23 @@
+debug: true
+config: ./config/
+data : ./data/
+help: https://github.com/tpc3/Bocchi-Re/wiki
+discord:
+  token: YOUR_TOKEN_HERE
+  status: Bocchi-Re is runnning! | b.help
+openai:
+  token: YOUR_TOKEN_HERE
+guild: 
+  prefix: b.
+  lang: japanese
+  model: 
+    chat:
+      default: gpt-3.5-turbo
+      latest_3dot5: gpt-3.5-turbo-1106
+      latest_4: gpt-4-1106-preview
+    image:
+      default: dall-e-2
+  reply: 3
+  maxtokens: 1000
+user_blacklist:
+- "0000000000000000000"

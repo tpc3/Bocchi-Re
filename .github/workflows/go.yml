@@ -1,0 +1,47 @@
+name: Go
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [linux-amd64, linux-arm, linux-arm64]
+        include:
+          - arch: linux-amd64
+            goos: linux
+            goarch: amd64
+          - arch: linux-arm
+            goos: linux
+            goarch: arm
+          - arch: linux-arm64
+            goos: linux
+            goarch: arm64
+        
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.19
+
+    - name: Build
+      run: mkdir -p bin/${{ matrix.goos }}/${{ matrix.goarch }}
+    - name: Build
+      run: go build -o bin/${{ matrix.goos }}/${{ matrix.goarch }}/
+      env:
+        CGO_ENABLED: 0
+        GOARCH: ${{ matrix.goarch }}
+        GOOS: ${{ matrix.goos }}
+
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v2.2.4
+      with:
+      # Artifact name
+        path: bin
