@@ -95,24 +95,24 @@ func VerifyGuild(guild *Guild) error {
 
 	_, exists := Lang[guild.Lang]
 	if !exists {
-		return errors.New("language dose not exists")
+		return errors.New("language does not exist")
 	}
 
 	_, exists = ChatModels[guild.Model.Chat.Default]
 	if !exists {
-		return errors.New("model dose not exists")
+		return errors.New("model does not exist")
 	}
 	_, exists = ChatModels[guild.Model.Chat.Latest_3Dot5]
 	if !exists {
-		return errors.New("model dose not exists")
+		return errors.New("model does not exist")
 	}
 	_, exists = ChatModels[guild.Model.Chat.Latest_4]
 	if !exists {
-		return errors.New("model dose not exists")
+		return errors.New("model does not exist")
 	}
 	_, exists = ImageModels[guild.Model.Image.Default]
 	if !exists {
-		return errors.New("model dose not exists")
+		return errors.New("model does not exist")
 	}
 
 	return nil
@@ -143,7 +143,7 @@ func LoadGuild(id *string) (*Guild, error) {
 		return nil, err
 	}
 
-	cachedGuild.Set(*id, guild, cache.DefaultExpiration)
+	cachedGuild.Set(*id, &guild, cache.DefaultExpiration)
 	return &guild, nil
 }
 
@@ -172,7 +172,6 @@ func SaveGuild(id *string, guild *Guild) error {
 		return err
 	}
 	cachedGuild.Set(*id, guild, cache.DefaultExpiration)
-	mutex.Unlock()
 
 	return nil
 }
