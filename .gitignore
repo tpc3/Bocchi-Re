@@ -23,3 +23,6 @@ go.work
 # ignore guild directories
 config
 data
+
+# ignore config file
+config.yaml
