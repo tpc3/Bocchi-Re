@@ -117,6 +117,10 @@ func VerifyGuild(guild *Guild) error {
 		return errors.New("model does not exist")
 	}
 
+	if guild.DefaultTemperature < 0.0 || 2.0 < guild.DefaultTemperature {
+		return errors.New("temperature out of range")
+	}
+
 	return nil
 }
 
