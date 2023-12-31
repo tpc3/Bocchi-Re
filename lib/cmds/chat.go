@@ -58,10 +58,10 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 	if maxTokens != 0 {
 		request.MaxTokens = maxTokens
 	} else {
-		request.MaxTokens = config.CurrentConfig.Guild.MaxTokens
+		request.MaxTokens = guild.MaxTokens
 	}
 	if repnum == 0 {
-		repnum = config.CurrentConfig.Guild.Reply
+		repnum = guild.Reply
 	}
 
 	// Get replied content

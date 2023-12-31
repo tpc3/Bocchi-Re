@@ -94,6 +94,7 @@ func WarningReply(msgInfo *MsgInfo, description string) {
 }
 
 func UnknownErrorEmbed(msgInfo *MsgInfo, err error) {
+	log.Print("Unknown error: ", err)
 	debug.PrintStack()
 	UnknownErrorNum++
 	msgEmbed := NewErrorEmbed(msgInfo, config.Lang[msgInfo.Lang].Error.Unkown)
