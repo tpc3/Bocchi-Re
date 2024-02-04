@@ -491,9 +491,6 @@ func runApi(msgInfo *embed.MsgInfo, request openai.ChatCompletionRequest, conten
 	}
 
 	// Get embed title
-	if filter {
-		msgEmbed.Title = "Social Filter"
-	}
 	if len(strings.SplitN(content, "\n", 2)) > 1 {
 		msgEmbed.Title = strings.SplitN(content, "\n", 2)[0]
 	}
@@ -501,6 +498,9 @@ func runApi(msgInfo *embed.MsgInfo, request openai.ChatCompletionRequest, conten
 		msgEmbed.Title = string([]rune(content)[:49]) + "..."
 	} else {
 		msgEmbed.Title = content
+	}
+	if filter {
+		msgEmbed.Title = "Social Filter"
 	}
 
 	// Setting mebed footer
