@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -275,9 +276,23 @@ func ResetTokens() {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	err := os.RemoveAll(CurrentConfig.Data)
+	var datas []string
+	err := filepath.Walk(CurrentConfig.Data, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		datas = append(datas, info.Name())
+		return nil
+	})
 	if err != nil {
-		log.Fatal("Fatal remove files", err)
+		log.Print(err)
+	}
+
+	for _, file := range datas {
+		err := os.Remove(CurrentConfig.Data + file)
+		if err != nil {
+			log.Print(err)
+		}
 	}
 }
 
