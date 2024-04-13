@@ -19,7 +19,7 @@ import (
 
 const Image = "image"
 
-func ImageCmd(msgInfo *embed.MsgInfo, msg *string) {
+func ImageCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 	msgInfo.Session.MessageReactionAdd(msgInfo.OrgMsg.ChannelID, msgInfo.OrgMsg.ID, "🤔")
 
 	if *msg == "" {
@@ -51,7 +51,7 @@ func ImageCmd(msgInfo *embed.MsgInfo, msg *string) {
 			request.Model = model
 		}
 	} else {
-		request.Model = config.CurrentConfig.Guild.Model.Image.Default
+		request.Model = guild.Model.Image.Default
 	}
 
 	// Error handling to size

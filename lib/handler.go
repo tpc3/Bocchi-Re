@@ -64,7 +64,7 @@ func MessageCreate(session *discordgo.Session, orgMsg *discordgo.MessageCreate) 
 		case cmds.Chat:
 			go cmds.ChatCmd(&msgInfo, &param, *guild)
 		case cmds.Image:
-			go cmds.ImageCmd(&msgInfo, &param)
+			go cmds.ImageCmd(&msgInfo, &param, *guild)
 		case cmds.Config:
 			cmds.ConfigCmd(&msgInfo, *guild)
 		case cmds.Cost:

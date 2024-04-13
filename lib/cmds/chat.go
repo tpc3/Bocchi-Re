@@ -58,10 +58,10 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 	if maxTokens != 0 {
 		request.MaxTokens = maxTokens
 	} else {
-		request.MaxTokens = config.CurrentConfig.Guild.MaxTokens
+		request.MaxTokens = guild.MaxTokens
 	}
 	if repnum == 0 {
-		repnum = config.CurrentConfig.Guild.Reply
+		repnum = guild.Reply
 	}
 
 	// Get replied content
@@ -178,9 +178,9 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 		if modelstr != "" {
 			if model, exist := config.ChatModels[modelstr]; exist {
 				if modelstr == "gpt-3.5-turbo" {
-					request.Model = config.CurrentConfig.Guild.Model.Chat.Latest_3Dot5
+					request.Model = guild.Model.Chat.Latest_3Dot5
 				} else if modelstr == "gpt-4" {
-					request.Model = config.CurrentConfig.Guild.Model.Chat.Latest_4
+					request.Model = guild.Model.Chat.Latest_4
 				} else {
 					request.Model = model
 				}
@@ -189,7 +189,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 				return
 			}
 		} else if request.Model == "" {
-			request.Model = config.CurrentConfig.Guild.Model.Chat.Default
+			request.Model = guild.Model.Chat.Default
 		}
 
 		runApi(msgInfo, request, content, filter, start, visionToken)
@@ -236,9 +236,9 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 		if modelstr != "" {
 			if model, exist := config.ChatModels[modelstr]; exist {
 				if modelstr == "gpt-3.5-turbo" {
-					request.Model = config.CurrentConfig.Guild.Model.Chat.Latest_3Dot5
+					request.Model = guild.Model.Chat.Latest_3Dot5
 				} else if modelstr == "gpt-4" {
-					request.Model = config.CurrentConfig.Guild.Model.Chat.Latest_4
+					request.Model = guild.Model.Chat.Latest_4
 				} else {
 					request.Model = model
 				}
@@ -247,7 +247,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 				return
 			}
 		} else {
-			request.Model = config.CurrentConfig.Guild.Model.Chat.Default
+			request.Model = guild.Model.Chat.Default
 		}
 
 		if systemstr != "" {
@@ -316,10 +316,10 @@ func goBackMessage(request openai.ChatCompletionRequest, msgInfo *embed.MsgInfo,
 		if seed != 0 && request.Seed == nil {
 			request.Seed = &seed
 		}
-		if maxTokens != 0 && request.MaxTokens == config.CurrentConfig.Guild.MaxTokens {
+		if maxTokens != 0 && request.MaxTokens == guild.MaxTokens {
 			request.MaxTokens = maxTokens
 		} else {
-			request.MaxTokens = config.CurrentConfig.Guild.MaxTokens
+			request.MaxTokens = guild.MaxTokens
 		}
 
 		if imageurl != "" {
