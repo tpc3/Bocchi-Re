@@ -19,5 +19,6 @@ guild:
       default: dall-e-2
   reply: 3
   maxtokens: 1000
+  defaultTemperature: 0.2
 user_blacklist:
 - "0000000000000000000"

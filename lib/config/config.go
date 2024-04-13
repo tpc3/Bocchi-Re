@@ -133,11 +133,12 @@ func LoadGuild(id *string) (*Guild, error) {
 	file, err := os.ReadFile(CurrentConfig.Config + *id + ".yaml")
 	if os.IsNotExist(err) {
 		return &Guild{
-			Prefix:    CurrentConfig.Guild.Prefix,
-			Lang:      CurrentConfig.Guild.Lang,
-			Model:     CurrentConfig.Guild.Model,
-			Reply:     CurrentConfig.Guild.Reply,
-			MaxTokens: CurrentConfig.Guild.MaxTokens,
+			Prefix:             CurrentConfig.Guild.Prefix,
+			Lang:               CurrentConfig.Guild.Lang,
+			Model:              CurrentConfig.Guild.Model,
+			Reply:              CurrentConfig.Guild.Reply,
+			MaxTokens:          CurrentConfig.Guild.MaxTokens,
+			DefaultTemperature: CurrentConfig.Guild.DefaultTemperature,
 		}, nil
 	} else if err != nil {
 		return nil, err
