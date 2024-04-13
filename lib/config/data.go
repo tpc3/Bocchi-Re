@@ -276,6 +276,7 @@ func ResetTokens() {
 	mutex.Lock()
 	defer mutex.Unlock()
 
+	data := initData()
 	var datas []string
 	err := filepath.Walk(CurrentConfig.Data, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -288,8 +289,16 @@ func ResetTokens() {
 		log.Print(err)
 	}
 
-	for _, file := range datas {
-		err := os.Remove(CurrentConfig.Data + file)
+	for i, file := range datas {
+		if i == 0 {
+			continue
+		}
+
+		newdata, err := yaml.Marshal(data)
+		if err != nil {
+			log.Print(err)
+		}
+		err = os.WriteFile(CurrentConfig.Data+file, newdata, 0666)
 		if err != nil {
 			log.Print(err)
 		}
