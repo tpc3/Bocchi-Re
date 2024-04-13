@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"io/fs"
 	"log"
 	"os"
 	"sync"
@@ -28,11 +29,12 @@ type Config struct {
 }
 
 type Guild struct {
-	Prefix    string `yaml:",omitempty"`
-	Lang      string `yaml:",omitempty"`
-	Model     Model  `yaml:",omitempty"`
-	Reply     int    `yaml:",omitempty"`
-	MaxTokens int    `yaml:",omitempty"`
+	Prefix             string  `yaml:",omitempty"`
+	Lang               string  `yaml:",omitempty"`
+	Model              Model   `yaml:",omitempty"`
+	Reply              int     `yaml:",omitempty"`
+	MaxTokens          int     `yaml:",omitempty"`
+	DefaultTemperature float32 `yaml:",omitempty"`
 }
 
 type Model struct {
@@ -115,6 +117,10 @@ func VerifyGuild(guild *Guild) error {
 		return errors.New("model does not exist")
 	}
 
+	if guild.DefaultTemperature < 0.0 || 2.0 < guild.DefaultTemperature {
+		return errors.New("temperature out of range")
+	}
+
 	return nil
 }
 
@@ -148,17 +154,8 @@ func LoadGuild(id *string) (*Guild, error) {
 }
 
 func SaveGuild(id *string, guild *Guild) error {
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	if guild.Prefix == CurrentConfig.Guild.Prefix && guild.Lang == CurrentConfig.Guild.Lang && guild.Model.Chat.Default == CurrentConfig.Guild.Model.Chat.Default && guild.Model.Chat.Latest_3Dot5 == CurrentConfig.Guild.Model.Chat.Latest_3Dot5 && guild.Model.Chat.Latest_4 == CurrentConfig.Guild.Model.Chat.Latest_4 && guild.Model.Image.Default == CurrentConfig.Guild.Model.Image.Default && guild.Reply == CurrentConfig.Guild.Reply && guild.MaxTokens == CurrentConfig.Guild.MaxTokens {
-
-		err := os.Remove(CurrentConfig.Config + *id + ".yaml")
-		if err != nil {
-			return err
-		}
-		cachedGuild.Delete(*id)
-		return nil
+	if guild.Prefix == CurrentConfig.Guild.Prefix && guild.Lang == CurrentConfig.Guild.Lang && guild.Model.Chat.Default == CurrentConfig.Guild.Model.Chat.Default && guild.Model.Chat.Latest_3Dot5 == CurrentConfig.Guild.Model.Chat.Latest_3Dot5 && guild.Model.Chat.Latest_4 == CurrentConfig.Guild.Model.Chat.Latest_4 && guild.Model.Image.Default == CurrentConfig.Guild.Model.Image.Default && guild.Reply == CurrentConfig.Guild.Reply && guild.MaxTokens == CurrentConfig.Guild.MaxTokens && guild.DefaultTemperature == CurrentConfig.Guild.DefaultTemperature {
+		return ResetGuild(id, guild)
 	}
 
 	data, err := yaml.Marshal(guild)
@@ -179,7 +176,7 @@ func ResetGuild(id *string, guild *Guild) error {
 	defer mutex.Unlock()
 
 	err := os.Remove(CurrentConfig.Config + *id + ".yaml")
-	if err != nil {
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return err
 	}
 

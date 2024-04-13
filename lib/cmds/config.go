@@ -74,6 +74,14 @@ func ConfigCmd(msgInfo *embed.MsgInfo, guild config.Guild) {
 			return
 		}
 		guild.MaxTokens, err = strconv.Atoi(split[2])
+	case "temp", "temperature":
+		if len(split) > 3 {
+			embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.Invalid)
+			return
+		}
+		var temp float64
+		temp, err = strconv.ParseFloat(split[2], 32)
+		guild.DefaultTemperature = float32(temp)
 	case "reset":
 		if len(split) > 3 {
 			embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.Invalid)
