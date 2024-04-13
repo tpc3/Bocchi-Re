@@ -19,22 +19,28 @@ type Data struct {
 }
 
 type Tokens struct {
-	GPT432K0613          ChatUsage
-	GPT432K0314          ChatUsage
-	GPT432K              ChatUsage
-	GPT40613             ChatUsage
-	GPT40314             ChatUsage
-	GPT4TurboPreview     ChatUsage
-	GPT4VisionPreview    VisionUsage
-	GPT4                 ChatUsage
-	GPT3Dot5Turbo1106    ChatUsage
-	GPT3Dot5Turbo0613    ChatUsage
-	GPT3Dot5Turbo0301    ChatUsage
-	GPT3Dot5Turbo16K     ChatUsage
-	GPT3Dot5Turbo16K0613 ChatUsage
-	GPT3Dot5Turbo        ChatUsage
-	DALLE2               DALLE2Usage
-	DALLE3               DALLE3Usage
+	GPT432K0613           ChatUsage
+	GPT432K0314           ChatUsage
+	GPT432K               ChatUsage
+	GPT40613              ChatUsage
+	GPT40314              ChatUsage
+	GPT4Turbo             VisionUsage
+	GPT4Turbo20240409     VisionUsage
+	GPT4Turbo0125         VisionUsage
+	GPT4Turbo1106         VisionUsage
+	GPT4TurboPreview      ChatUsage
+	GPT4VisionPreview     VisionUsage
+	GPT4                  ChatUsage
+	GPT3Dot5Turbo0125     ChatUsage
+	GPT3Dot5Turbo1106     ChatUsage
+	GPT3Dot5Turbo0613     ChatUsage
+	GPT3Dot5Turbo0301     ChatUsage
+	GPT3Dot5Turbo16K      ChatUsage
+	GPT3Dot5Turbo16K0613  ChatUsage
+	GPT3Dot5Turbo         ChatUsage
+	GPT3Dot5TurboInstruct ChatUsage
+	DALLE2                DALLE2Usage
+	DALLE3                DALLE3Usage
 }
 
 type ChatUsage struct {
@@ -119,6 +125,26 @@ func initData() Data {
 				Prompt:     0,
 				Completion: 0,
 			},
+			GPT4Turbo: VisionUsage{
+				Prompt:     0,
+				Completion: 0,
+				Vision:     0,
+			},
+			GPT4Turbo20240409: VisionUsage{
+				Prompt:     0,
+				Completion: 0,
+				Vision:     0,
+			},
+			GPT4Turbo0125: VisionUsage{
+				Prompt:     0,
+				Completion: 0,
+				Vision:     0,
+			},
+			GPT4Turbo1106: VisionUsage{
+				Prompt:     0,
+				Completion: 0,
+				Vision:     0,
+			},
 			GPT4TurboPreview: ChatUsage{
 				Prompt:     0,
 				Completion: 0,
@@ -129,6 +155,10 @@ func initData() Data {
 				Vision:     0,
 			},
 			GPT4: ChatUsage{
+				Prompt:     0,
+				Completion: 0,
+			},
+			GPT3Dot5Turbo0125: ChatUsage{
 				Prompt:     0,
 				Completion: 0,
 			},
@@ -153,6 +183,10 @@ func initData() Data {
 				Completion: 0,
 			},
 			GPT3Dot5Turbo: ChatUsage{
+				Prompt:     0,
+				Completion: 0,
+			},
+			GPT3Dot5TurboInstruct: ChatUsage{
 				Prompt:     0,
 				Completion: 0,
 			},
@@ -196,6 +230,22 @@ func SaveData(data *Data, id *string, model *string, size string, quality string
 	case openai.GPT40314:
 		data.Tokens.GPT40314.Prompt += *promptToken
 		data.Tokens.GPT40314.Completion += *completionToken
+	case openai.GPT4Turbo:
+		data.Tokens.GPT4Turbo.Prompt += *promptToken
+		data.Tokens.GPT4Turbo.Completion += *completionToken
+		data.Tokens.GPT4Turbo.Vision += *visionToken
+	case openai.GPT4Turbo20240409:
+		data.Tokens.GPT4Turbo20240409.Prompt += *promptToken
+		data.Tokens.GPT4Turbo20240409.Completion += *completionToken
+		data.Tokens.GPT4Turbo20240409.Vision += *visionToken
+	case openai.GPT4Turbo0125:
+		data.Tokens.GPT4Turbo0125.Prompt += *promptToken
+		data.Tokens.GPT4Turbo0125.Completion += *completionToken
+		data.Tokens.GPT4Turbo0125.Vision += *visionToken
+	case openai.GPT4Turbo1106:
+		data.Tokens.GPT4Turbo1106.Prompt += *promptToken
+		data.Tokens.GPT4Turbo1106.Completion += *completionToken
+		data.Tokens.GPT4Turbo1106.Vision += *visionToken
 	case openai.GPT4TurboPreview:
 		data.Tokens.GPT4TurboPreview.Prompt += *promptToken
 		data.Tokens.GPT4TurboPreview.Completion += *completionToken
@@ -206,6 +256,9 @@ func SaveData(data *Data, id *string, model *string, size string, quality string
 	case openai.GPT4:
 		data.Tokens.GPT4.Prompt += *promptToken
 		data.Tokens.GPT4.Completion += *completionToken
+	case openai.GPT3Dot5Turbo0125:
+		data.Tokens.GPT3Dot5Turbo0125.Prompt += *promptToken
+		data.Tokens.GPT3Dot5Turbo0125.Completion += *completionToken
 	case openai.GPT3Dot5Turbo1106:
 		data.Tokens.GPT3Dot5Turbo1106.Prompt += *promptToken
 		data.Tokens.GPT3Dot5Turbo1106.Completion += *completionToken
@@ -224,6 +277,9 @@ func SaveData(data *Data, id *string, model *string, size string, quality string
 	case openai.GPT3Dot5Turbo:
 		data.Tokens.GPT3Dot5Turbo.Prompt += *promptToken
 		data.Tokens.GPT3Dot5Turbo.Completion += *completionToken
+	case openai.GPT3Dot5TurboInstruct:
+		data.Tokens.GPT3Dot5TurboInstruct.Prompt += *promptToken
+		data.Tokens.GPT3Dot5TurboInstruct.Completion += *completionToken
 	case openai.CreateImageModelDallE2:
 		switch size {
 		case "256x256":
