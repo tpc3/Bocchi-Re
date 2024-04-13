@@ -158,9 +158,6 @@ func SaveGuild(id *string, guild *Guild) error {
 		return ResetGuild(id, guild)
 	}
 
-	mutex.Lock()
-	defer mutex.Unlock()
-
 	data, err := yaml.Marshal(guild)
 	if err != nil {
 		return err
