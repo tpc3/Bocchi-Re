@@ -1,5 +1,5 @@
 debug: true
-config: ./config/
+config: ./configs/
 data : ./data/
 help: https://github.com/tpc3/Bocchi-Re/wiki
 discord:

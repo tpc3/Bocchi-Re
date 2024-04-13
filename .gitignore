@@ -21,7 +21,7 @@
 go.work
 
 # ignore guild directories
-config
+configs
 data
 
 # ignore config file
