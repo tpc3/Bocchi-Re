@@ -7,10 +7,10 @@ discord:
   status: Bocchi-Re is runnning! | b.help
 openai:
   token: YOUR_TOKEN_HERE
-guild: 
+guild:
   prefix: b.
   lang: japanese
-  model: 
+  model:
     chat:
       default: gpt-3.5-turbo
       latest_3dot5: gpt-3.5-turbo-1106
