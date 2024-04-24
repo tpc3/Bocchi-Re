@@ -3,11 +3,13 @@ package config
 import (
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/goccy/go-yaml"
 	"github.com/robfig/cron/v3"
@@ -362,10 +364,17 @@ func ResetTokens() {
 }
 
 func getRate() {
-	url := "https://api.excelapi.org/currency/rate?pair=usd-jpy"
-	resp, err := http.Get(url)
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+	}
 
+	url := "https://api.excelapi.org/currency/rate?pair=usd-jpy"
+
+	resp, err := client.Get(url)
 	if err != nil {
+		if err, ok := err.(net.Error); ok && err.Timeout() {
+			log.Println("API timeout: ", err)
+		}
 		log.Fatal("API for get rate error: ", err)
 	}
 
