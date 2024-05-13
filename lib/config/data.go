@@ -21,6 +21,7 @@ type Data struct {
 }
 
 type Tokens struct {
+	GPT4o                 VisionUsage
 	GPT432K0613           ChatUsage
 	GPT432K0314           ChatUsage
 	GPT432K               ChatUsage
@@ -107,6 +108,11 @@ func LoadData(id *string) (*Data, error) {
 func initData() Data {
 	data := Data{
 		Tokens: Tokens{
+			GPT4o: VisionUsage{
+				Prompt:     0,
+				Completion: 0,
+				Vision:     0,
+			},
 			GPT432K0613: ChatUsage{
 				Prompt:     0,
 				Completion: 0,

@@ -41,15 +41,16 @@ func calcTokens(msgInfo *embed.MsgInfo) (float64, error) {
 		return 0, err
 	}
 
+	tokensGPT4o := (0.005/1000)*float64(data.Tokens.GPT4o.Prompt) + (0.015/1000)*float64(data.Tokens.GPT4o.Completion) + (0.01/1000)*float64(data.Tokens.GPT4o.Vision)
 	tokensGPT432K0613 := (0.06/1000)*float64(data.Tokens.GPT432K0613.Prompt) + (0.12/1000)*float64(data.Tokens.GPT432K0613.Completion)
 	tokensGPT432K0314 := (0.06/1000)*float64(data.Tokens.GPT432K0314.Prompt) + (0.12/1000)*float64(data.Tokens.GPT432K0314.Completion)
 	tokensGPT432K := (0.06/1000)*float64(data.Tokens.GPT432K.Prompt) + (0.12/1000)*float64(data.Tokens.GPT432K.Completion)
 	tokensGPT40613 := (0.03/1000)*float64(data.Tokens.GPT40613.Prompt) + (0.06/1000)*float64(data.Tokens.GPT40613.Completion)
 	tokensGPT40314 := (0.03/1000)*float64(data.Tokens.GPT40314.Prompt) + (0.06/1000)*float64(data.Tokens.GPT40314.Completion)
-	tokensGPT4Turbo := (0.01/1000)*float64(data.Tokens.GPT4Turbo.Prompt) + (0.03/1000)*float64(data.Tokens.GPT4Turbo.Completion)
-	tokensGPT4Turbo20240409 := (0.01/1000)*float64(data.Tokens.GPT4Turbo20240409.Prompt) + (0.03/1000)*float64(data.Tokens.GPT4Turbo20240409.Completion)
-	tokensGPT4Turbo0125 := (0.01/1000)*float64(data.Tokens.GPT4Turbo0125.Prompt) + (0.03/1000)*float64(data.Tokens.GPT4Turbo0125.Completion)
-	tokensGPT4Turbo1106 := (0.01/1000)*float64(data.Tokens.GPT4Turbo1106.Prompt) + (0.03/1000)*float64(data.Tokens.GPT4Turbo1106.Completion)
+	tokensGPT4Turbo := (0.01/1000)*float64(data.Tokens.GPT4Turbo.Prompt) + (0.03/1000)*float64(data.Tokens.GPT4Turbo.Completion) + (0.01/1000)*float64(data.Tokens.GPT4Turbo.Vision)
+	tokensGPT4Turbo20240409 := (0.01/1000)*float64(data.Tokens.GPT4Turbo20240409.Prompt) + (0.03/1000)*float64(data.Tokens.GPT4Turbo20240409.Completion) + (0.01/1000)*float64(data.Tokens.GPT4Turbo20240409.Vision)
+	tokensGPT4Turbo0125 := (0.01/1000)*float64(data.Tokens.GPT4Turbo0125.Prompt) + (0.03/1000)*float64(data.Tokens.GPT4Turbo0125.Completion) + (0.01/1000)*float64(data.Tokens.GPT4Turbo0125.Vision)
+	tokensGPT4Turbo1106 := (0.01/1000)*float64(data.Tokens.GPT4Turbo1106.Prompt) + (0.03/1000)*float64(data.Tokens.GPT4Turbo1106.Completion) + (0.01/1000)*float64(data.Tokens.GPT4Turbo1106.Vision)
 	tokensGPT4TurboPreview := (0.01/1000)*float64(data.Tokens.GPT4TurboPreview.Prompt) + (0.03/1000)*float64(data.Tokens.GPT4TurboPreview.Completion)
 	tokensGPT4VisionPreview := (0.01/1000)*float64(data.Tokens.GPT4VisionPreview.Prompt) + (0.03/1000)*float64(data.Tokens.GPT4VisionPreview.Completion) + (0.01/1000)*float64(data.Tokens.GPT4VisionPreview.Vision)
 	tokensGPT4 := (0.03/1000)*float64(data.Tokens.GPT4.Prompt) + (0.06/1000)*float64(data.Tokens.GPT4.Completion)
@@ -71,6 +72,6 @@ func calcTokens(msgInfo *embed.MsgInfo) (float64, error) {
 		rate = 1
 	}
 
-	cost := rate * (tokensGPT432K0613 + tokensGPT432K0314 + tokensGPT432K + tokensGPT40613 + tokensGPT40314 + tokensGPT4Turbo + tokensGPT4Turbo20240409 + tokensGPT4Turbo0125 + tokensGPT4Turbo1106 + tokensGPT4TurboPreview + tokensGPT4VisionPreview + tokensGPT4 + tokensGPT3Dot5Turbo0125 + tokensGPT3Dot5Turbo1106 + tokensGPT3Dot5Turbo0613 + tokensGPT3Dot5Turbo0301 + tokensGPT3Dot5Turbo16K + tokensGPT3Dot5Turbo16K0613 + tokensGPT3Dot5Turbo + tokensGPT3Dot5TurboInstruct + tokensDALLE2 + tokensDALLE3)
+	cost := rate * (tokensGPT4o + tokensGPT432K0613 + tokensGPT432K0314 + tokensGPT432K + tokensGPT40613 + tokensGPT40314 + tokensGPT4Turbo + tokensGPT4Turbo20240409 + tokensGPT4Turbo0125 + tokensGPT4Turbo1106 + tokensGPT4TurboPreview + tokensGPT4VisionPreview + tokensGPT4 + tokensGPT3Dot5Turbo0125 + tokensGPT3Dot5Turbo1106 + tokensGPT3Dot5Turbo0613 + tokensGPT3Dot5Turbo0301 + tokensGPT3Dot5Turbo16K + tokensGPT3Dot5Turbo16K0613 + tokensGPT3Dot5Turbo + tokensGPT3Dot5TurboInstruct + tokensDALLE2 + tokensDALLE3)
 	return cost, nil
 }

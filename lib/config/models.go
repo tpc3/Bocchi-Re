@@ -7,6 +7,7 @@ var ImageModels map[string]string
 
 func loadModels() {
 	ChatModels = map[string]string{
+		"gpt-4o":                 "gpt-4o",
 		"gpt-4-32k-0613":         openai.GPT432K0613,
 		"gpt-4-32k-0314":         openai.GPT432K0314,
 		"gpt-4-32k":              openai.GPT432K,
