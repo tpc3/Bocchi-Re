@@ -370,6 +370,8 @@ func ResetTokens() {
 }
 
 func getRate() {
+	CurrentRate = 145
+
 	client := &http.Client{
 		Timeout: 5 * time.Second,
 	}
@@ -381,22 +383,24 @@ func getRate() {
 		if err, ok := err.(net.Error); ok && err.Timeout() {
 			log.Println("API timeout: ", err)
 		}
-		log.Fatal("API for get rate error: ", err)
+		log.Print("API for get rate error: ", err)
+		return
 	}
 
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		CurrentRate = 145
 		return
 	}
 
 	byteArray, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal("Reading body error: ", err)
+		log.Print("Reading body error: ", err)
+		return
 	}
 
 	CurrentRate, err = strconv.ParseFloat(string(byteArray), 64)
 	if err != nil {
-		log.Fatal("Parsing rate error: ", err)
+		log.Print("Parsing rate error: ", err)
+		return
 	}
 }
