@@ -1,6 +1,7 @@
 FROM golang:alpine AS build
+RUN apk add git gcc musl-dev
+ENV CGO_ENABLED 1
 ADD . /go/src/Bocchi-Re/
-ENV CGO_ENABLED 0
 WORKDIR /go/src/Bocchi-Re
 RUN go build .
 
