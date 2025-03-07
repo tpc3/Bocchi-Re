@@ -28,54 +28,44 @@ func ConfigCmd(msgInfo *embed.MsgInfo, guild config.Guild) {
 	var err error
 	switch split[1] {
 	case "prefix":
-		if len(split) > 3 {
+		if len(split) != 3 {
 			embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.Invalid)
 			return
 		}
 		guild.Prefix = split[2]
 	case "lang":
-		if len(split) > 3 {
+		if len(split) != 3 {
 			embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.Invalid)
 			return
 		}
 		guild.Lang = split[2]
 	case "model":
-		if len(split) == 4 && len(split) > 5 {
+		if len(split) != 4 {
 			embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.Invalid)
 			return
 		}
 		if split[2] == "chat" {
-			switch split[3] {
-			case "default":
-				guild.Model.Chat.Default = split[4]
-			case "latest_3dot5":
-				guild.Model.Chat.Latest_3Dot5 = split[4]
-			case "latest_4":
-				guild.Model.Chat.Latest_4 = split[4]
-			}
+			guild.Model.Chat = split[3]
 		} else if split[2] == "image" {
-			switch split[3] {
-			case "default":
-				guild.Model.Image.Default = split[4]
-			}
+			guild.Model.Image = split[3]
 		} else {
 			embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.Invalid)
 			return
 		}
 	case "reply":
-		if len(split) > 3 {
+		if len(split) != 3 {
 			embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.Invalid)
 			return
 		}
 		guild.Reply, err = strconv.Atoi(split[2])
-	case "maxtokens":
-		if len(split) > 3 {
+	case "maxcompletiontokens":
+		if len(split) != 3 {
 			embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.Invalid)
 			return
 		}
-		guild.MaxTokens, err = strconv.Atoi(split[2])
+		guild.MaxCompletionTokens, err = strconv.Atoi(split[2])
 	case "temp", "temperature":
-		if len(split) > 3 {
+		if len(split) != 3 {
 			embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.Invalid)
 			return
 		}
@@ -83,7 +73,7 @@ func ConfigCmd(msgInfo *embed.MsgInfo, guild config.Guild) {
 		temp, err = strconv.ParseFloat(split[2], 32)
 		guild.DefaultTemperature = float32(temp)
 	case "reset":
-		if len(split) > 3 {
+		if len(split) != 3 {
 			embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.Invalid)
 			return
 		}
@@ -117,5 +107,5 @@ func ConfigCmd(msgInfo *embed.MsgInfo, guild config.Guild) {
 		return
 	}
 	msgInfo.Session.MessageReactionAdd(msgInfo.OrgMsg.ChannelID, msgInfo.OrgMsg.ID, "👍")
-	embed.MessageEmbed(msgInfo, Config, config.Lang[msgInfo.Lang].Content.Config)
+	embed.MessageEmbed(msgInfo, Config, config.Lang[guild.Lang].Content.Config)
 }

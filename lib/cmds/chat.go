@@ -21,6 +21,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/sashabaranov/go-openai"
 	"github.com/tpc3/Bocchi-Re/lib/config"
+	"github.com/tpc3/Bocchi-Re/lib/database"
 	"github.com/tpc3/Bocchi-Re/lib/embed"
 	"github.com/tpc3/Bocchi-Re/lib/utils"
 )
@@ -35,35 +36,18 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 		return
 	}
 
-	content, modelstr, systemstr, imageurl, detail, temperature, top_p, repnum, maxTokens, seed, filter, err := splitChatMsg(msg)
-
-	if err != nil {
-		embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.SubCmd)
-		return
-	}
-
 	start := time.Now()
 	request := openai.ChatCompletionRequest{}
 
-	// Setting parameter
-	if temperature != 0.0 {
-		request.Temperature = float32(temperature)
-	} else {
-		request.Temperature = guild.DefaultTemperature
-	}
-	if top_p != 0.0 {
-		request.TopP = float32(top_p)
-	}
-	if seed != 0 {
-		request.Seed = &seed
-	}
-	if maxTokens != 0 {
-		request.MaxTokens = maxTokens
-	} else {
-		request.MaxTokens = guild.MaxTokens
-	}
-	if repnum == 0 {
-		repnum = guild.Reply
+	content, modelstr, systemstr, imageurl, detail, reasoning_effort, temperature, top_p, frequency_penalty, repnum, maxCompletionTokens, seed, filter, err := splitChatMsg(msg, msgInfo, guild, &request)
+
+	if err != nil {
+		if err.Error() == "no model" {
+			return
+		} else if content == "" {
+			embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.SubCmd)
+			return
+		}
 	}
 
 	// Get replied content
@@ -123,25 +107,61 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 
 	// Exist reply
 	if repMsg != nil {
-		if repMsg.Author.ID == msgInfo.Session.State.User.ID && (repMsg.Embeds[0].Color == embed.ColorGPT3 || repMsg.Embeds[0].Color == embed.ColorGPT4) {
+		if repMsg.Author.ID == msgInfo.Session.State.User.ID && (repMsg.Embeds[0].Color == embed.ColorGPT3 || repMsg.Embeds[0].Color == embed.ColorGPT4 || repMsg.Embeds[0].Color == embed.Color_o_series) {
 			var truesys bool
 			if systemstr != "" {
 				truesys = true
 			}
+
+			if repnum == 0 {
+				repnum = guild.Reply
+			}
+
 			var repVisionToken int
 			request, repVisionToken, err = goBackMessage(request, msgInfo, guild, repMsg, repnum, truesys)
 			if err != nil {
 				return
 			}
+
+			// Setting parameter
+			request.Model = modelstr
+			if temperature != 0.0 {
+				request.Temperature = float32(temperature)
+			} else {
+				request.Temperature = guild.DefaultTemperature
+			}
+			if top_p != 0.0 {
+				request.TopP = float32(top_p)
+			}
+			if seed != 0 {
+				request.Seed = &seed
+			}
+			if maxCompletionTokens != 0 {
+				request.MaxCompletionTokens = maxCompletionTokens
+			} else {
+				request.MaxCompletionTokens = guild.MaxCompletionTokens
+			}
+			if reasoning_effort != "medium" {
+				request.ReasoningEffort = reasoning_effort
+			}
+			if frequency_penalty != 0.0 {
+				request.FrequencyPenalty = frequency_penalty
+			}
+
 			if imageurl != "" {
+
+				if !judgeVisionModel(modelstr) {
+					embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.NoVisionModel)
+					return
+				}
+
 				// Verify imageURL
-				visionToken, err = verifyImage(msgInfo, imageurl, detail)
+				visionToken, err = verifyImage(msgInfo, imageurl, detail, modelstr)
 				if err != nil {
 					return
 				}
 				visionToken = visionToken + repVisionToken
 
-				request.Model = openai.GPT4VisionPreview
 				if systemstr != "" {
 					request.Messages = append(request.Messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleSystem, Content: systemstr})
 				}
@@ -176,36 +196,48 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 			}
 		}
 
-		// Verify model
-		if modelstr != "" {
-			if model, exist := config.ChatModels[modelstr]; exist {
-				if modelstr == "gpt-3.5-turbo" {
-					request.Model = guild.Model.Chat.Latest_3Dot5
-				} else if modelstr == "gpt-4" {
-					request.Model = guild.Model.Chat.Latest_4
-				} else {
-					request.Model = model
-				}
-			} else {
-				embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.NoModel)
-				return
-			}
-		} else if request.Model == "" {
-			request.Model = guild.Model.Chat.Default
-		}
-
 		runApi(msgInfo, request, content, filter, start, visionToken)
 		return
 	} else {
+		// No Reply
+
+		// Setting parameter
+		if temperature != 0.0 {
+			request.Temperature = float32(temperature)
+		} else {
+			request.Temperature = guild.DefaultTemperature
+		}
+		if top_p != 0.0 {
+			request.TopP = float32(top_p)
+		}
+		if seed != 0 {
+			request.Seed = &seed
+		}
+		if maxCompletionTokens != 0 {
+			request.MaxCompletionTokens = maxCompletionTokens
+		} else {
+			request.MaxCompletionTokens = guild.MaxCompletionTokens
+		}
+		if reasoning_effort != "medium" {
+			request.ReasoningEffort = reasoning_effort
+		}
+		if frequency_penalty != 0.0 {
+			request.FrequencyPenalty = frequency_penalty
+		}
+
 		if imageurl != "" {
 
+			if !judgeVisionModel(modelstr) {
+				embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.NoVisionModel)
+				return
+			}
+
 			// Verify imageURL
-			visionToken, err = verifyImage(msgInfo, imageurl, detail)
+			visionToken, err = verifyImage(msgInfo, imageurl, detail, modelstr)
 			if err != nil {
 				return
 			}
 
-			request.Model = openai.GPT4VisionPreview
 			if systemstr != "" {
 				request.Messages = append(request.Messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleSystem, Content: systemstr})
 			}
@@ -234,24 +266,6 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 
 		}
 
-		// Verify model
-		if modelstr != "" {
-			if model, exist := config.ChatModels[modelstr]; exist {
-				if modelstr == "gpt-3.5-turbo" {
-					request.Model = guild.Model.Chat.Latest_3Dot5
-				} else if modelstr == "gpt-4" {
-					request.Model = guild.Model.Chat.Latest_4
-				} else {
-					request.Model = model
-				}
-			} else {
-				embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.NoModel)
-				return
-			}
-		} else {
-			request.Model = guild.Model.Chat.Default
-		}
-
 		if systemstr != "" {
 			request.Messages = append(request.Messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleSystem, Content: systemstr})
 		}
@@ -277,7 +291,7 @@ func goBackMessage(request openai.ChatCompletionRequest, msgInfo *embed.MsgInfo,
 	for i := 0; i < repnum; i++ {
 		if repMsg.Author.ID != msgInfo.Session.State.User.ID {
 			break
-		} else if repMsg.Embeds[0].Color != embed.ColorGPT3 && repMsg.Embeds[0].Color != embed.ColorGPT4 {
+		} else if repMsg.Embeds[0].Color != embed.ColorGPT3 && repMsg.Embeds[0].Color != embed.ColorGPT4 && repMsg.Embeds[0].Color != embed.Color_o_series {
 			break
 		}
 		request.Messages = append(request.Messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleAssistant, Content: repMsg.Embeds[0].Description})
@@ -303,35 +317,44 @@ func goBackMessage(request openai.ChatCompletionRequest, msgInfo *embed.MsgInfo,
 			break
 		}
 		_, _, trimmed := utils.TrimPrefix(repMsg.Content, guild.Prefix, msgInfo.Session.State.User.Mention())
-		content, modelstr, systemstr, imageurl, detail, temperature, top_p, _, maxTokens, seed, _, _ := splitChatMsg(&trimmed)
+		content, modelstr, systemstr, imageurl, detail, reasoning_effort, temperature, top_p, frequency_penalty, _, maxCompletionTokens, seed, _, _ := splitChatMsg(&trimmed, msgInfo, guild, &request)
 
 		// Setting parameter
-		if modelstr != "" && request.Model == "" {
-			request.Model = modelstr
-		}
-		if temperature != 0.0 && request.Temperature == 0.0 {
+		if temperature != 1.0 && request.Temperature == 1.0 {
 			request.Temperature = float32(temperature)
 		}
-		if top_p != 0.0 && request.TopP == 0.0 {
+		if top_p != 1.0 && request.TopP == 1.0 {
 			request.TopP = float32(top_p)
 		}
 		if seed != 0 && request.Seed == nil {
 			request.Seed = &seed
 		}
-		if maxTokens != 0 && request.MaxTokens == guild.MaxTokens {
-			request.MaxTokens = maxTokens
+		if maxCompletionTokens != 0 && request.MaxCompletionTokens == guild.MaxCompletionTokens {
+			request.MaxCompletionTokens = maxCompletionTokens
 		} else {
-			request.MaxTokens = guild.MaxTokens
+			request.MaxCompletionTokens = guild.MaxCompletionTokens
+		}
+		if reasoning_effort != "medium" && request.ReasoningEffort == "" {
+			request.ReasoningEffort = reasoning_effort
+		}
+		if frequency_penalty != 0.0 && request.FrequencyPenalty == 0.0 {
+			request.FrequencyPenalty = frequency_penalty
 		}
 
 		if imageurl != "" {
+
+			if !judgeVisionModel(modelstr) {
+				embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.NoVisionModel)
+				err = errors.New("no vision model")
+				return request, visionToken, err
+			}
+
 			// Verify imageURL
-			visionToken, err = verifyImage(msgInfo, imageurl, detail)
+			visionToken, err = verifyImage(msgInfo, imageurl, detail, modelstr)
 			if err != nil {
 				return request, visionToken, err
 			}
 
-			request.Model = openai.GPT4VisionPreview
 			message := []openai.ChatCompletionMessage{
 				{
 					Role: openai.ChatMessageRoleUser,
@@ -390,17 +413,26 @@ func reverse(s interface{}) {
 	}
 }
 
-func splitChatMsg(msg *string) (string, string, string, string, string, float64, float64, int, int, int, bool, error) {
+func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, request *openai.ChatCompletionRequest) (string, string, string, string, string, string, float64, float64, float32, int, int, int, bool, error) {
 	var (
-		content, modelstr, systemstr, imageurl, detail string
-		temperature, top_p                             float64
-		prm, filter                                    bool
-		repnum, maxTokens, seed                        int
-		err                                            error
+		content, modelstr, systemstr, imageurl, detail, reasoning_effort string
+		temperature, top_p                                               float64
+		frequency_penalty                                                float32
+		prm, filter                                                      bool
+		repnum, maxCompletionTokens, seed                                int
+		err                                                              error
 	)
 
 	str := strings.Split(*msg, " ")
+
+	// setting default value
+	filter = false
 	prm = true
+	modelstr = guild.Model.Chat
+	reasoning_effort = "medium"
+	temperature = 1.0
+	top_p = 1.0
+	frequency_penalty = 0.0
 
 	for i := 0; i < len(str); i++ {
 		if strings.HasPrefix(str[i], "-") && prm && !filter {
@@ -427,16 +459,23 @@ func splitChatMsg(msg *string) (string, string, string, string, string, float64,
 				temperature, err = strconv.ParseFloat(str[i+1], 64)
 				i += 1
 			case "-p":
-				top_p, err = strconv.ParseFloat(str[i+1], 32)
+				top_p, err = strconv.ParseFloat(str[i+1], 64)
 				i += 1
 			case "-l":
 				repnum, err = strconv.Atoi(str[i+1])
 				i += 1
-			case "--maxtokens":
-				maxTokens, err = strconv.Atoi(str[i+1])
+			case "--maxCompletiontokens":
+				maxCompletionTokens, err = strconv.Atoi(str[i+1])
 				i += 1
 			case "--seed":
 				seed, _ = strconv.Atoi(str[i+1])
+				i += 1
+			case "--reasoning_effort":
+				reasoning_effort = str[i+1]
+				i += 1
+			case "--frequency_penalty":
+				freqPenalty, _ := strconv.ParseFloat(str[i+1], 64)
+				frequency_penalty = float32(freqPenalty)
 				i += 1
 			default:
 				content += str[i] + " "
@@ -447,10 +486,31 @@ func splitChatMsg(msg *string) (string, string, string, string, string, float64,
 			prm = false
 		}
 	}
-	return content, modelstr, systemstr, imageurl, detail, temperature, top_p, repnum, maxTokens, seed, filter, err
+
+	//verify model
+	if modelstr != guild.Model.Chat {
+		modelInfo, exist := config.AllModels[modelstr]
+		if exist {
+			modelstr = modelInfo.Key
+		} else {
+			embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.NoModel)
+			err = errors.New("no model")
+			return content, modelstr, systemstr, imageurl, detail, reasoning_effort, temperature, top_p, frequency_penalty, repnum, maxCompletionTokens, seed, filter, err
+		}
+	}
+	request.Model = modelstr
+
+	return content, modelstr, systemstr, imageurl, detail, reasoning_effort, temperature, top_p, frequency_penalty, repnum, maxCompletionTokens, seed, filter, err
 }
 
 func runApi(msgInfo *embed.MsgInfo, request openai.ChatCompletionRequest, content string, filter bool, start time.Time, visionToken int) {
+
+	// Verify reasoning effort
+	re := regexp.MustCompile(`^o\d.*`)
+	if request.ReasoningEffort != "" && !re.Match([]byte(request.Model)) {
+		embed.WarningReply(msgInfo, config.Lang[msgInfo.Lang].Warning.NoSupportedParameterText)
+		request.ReasoningEffort = ""
+	}
 
 	// Run OpenAI API
 	client := openai.NewClient(config.CurrentConfig.Openai.Token)
@@ -466,19 +526,39 @@ func runApi(msgInfo *embed.MsgInfo, request openai.ChatCompletionRequest, conten
 
 	response := resp.Choices[0].Message.Content
 
-	// Save cost
-	data, err := config.LoadData(&msgInfo.OrgMsg.GuildID)
-	if err != nil {
-		embed.UnknownErrorEmbed(msgInfo, err)
-		return
-	}
-	err = config.SaveData(data, &msgInfo.OrgMsg.GuildID, &request.Model, "", "", &resp.Usage.PromptTokens, &resp.Usage.CompletionTokens, &visionToken)
-	if err != nil {
+	// Add usage to database
+	promptTokens := resp.Usage.PromptTokens
+	promptCacheTokens := resp.Usage.PromptTokensDetails.CachedTokens
+	completionTokens := resp.Usage.CompletionTokens
+
+	if err := database.AddUsage(msgInfo.OrgMsg.GuildID, request.Model, "prompt_tokens", promptTokens); err != nil {
+		log.Println("DB追加エラー:", err)
 		embed.WarningReply(msgInfo, config.Lang[msgInfo.Lang].Warning.DataSaveError)
+	}
+	if err := database.AddUsage(msgInfo.OrgMsg.GuildID, request.Model, "completion_tokens", completionTokens); err != nil {
+		log.Println("DB追加エラー:", err)
+		embed.WarningReply(msgInfo, config.Lang[msgInfo.Lang].Warning.DataSaveError)
+	}
+	if promptCacheTokens > 0 {
+		if err := database.AddUsage(msgInfo.OrgMsg.GuildID, request.Model, "prompt_cache_tokens", promptCacheTokens); err != nil {
+			log.Println("DB追加エラー:", err)
+			embed.WarningReply(msgInfo, config.Lang[msgInfo.Lang].Warning.DataSaveError)
+		}
+	}
+	if visionToken > 0 {
+		if err := database.AddUsage(msgInfo.OrgMsg.GuildID, request.Model, "vision_tokens", visionToken); err != nil {
+			log.Println("DB追加エラー:", err)
+			embed.WarningReply(msgInfo, config.Lang[msgInfo.Lang].Warning.DataSaveError)
+		}
 	}
 
 	if utf8.RuneCountInString(response) > 4096 {
 		embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.TooLongResponse)
+		return
+	}
+
+	if response == "" {
+		embed.WarningReply(msgInfo, config.Lang[msgInfo.Lang].Warning.NoResponse)
 		return
 	}
 
@@ -488,6 +568,8 @@ func runApi(msgInfo *embed.MsgInfo, request openai.ChatCompletionRequest, conten
 		msgEmbed.Color = embed.ColorGPT3
 	} else if strings.Contains(resp.Model, "gpt-4") {
 		msgEmbed.Color = embed.ColorGPT4
+	} else if re.MatchString(resp.Model) {
+		msgEmbed.Color = embed.Color_o_series
 	}
 
 	// Get embed title
@@ -508,7 +590,7 @@ func runApi(msgInfo *embed.MsgInfo, request openai.ChatCompletionRequest, conten
 	exectimetext := config.Lang[msgInfo.Lang].Reply.ExexTime
 	second := config.Lang[msgInfo.Lang].Reply.Second
 	msgEmbed.Footer = &discordgo.MessageEmbedFooter{
-		Text: exectimetext + dulation + second,
+		Text: exectimetext + dulation + second + "・" + resp.Model,
 	}
 
 	msgInfo.Session.MessageReactionRemove(msgInfo.OrgMsg.ChannelID, msgInfo.OrgMsg.ID, "🤔", msgInfo.Session.State.User.ID)
@@ -516,7 +598,12 @@ func runApi(msgInfo *embed.MsgInfo, request openai.ChatCompletionRequest, conten
 	embed.ReplyEmbed(reply, msgInfo, msgEmbed)
 }
 
-func verifyImage(msgInfo *embed.MsgInfo, imageurl string, detail string) (int, error) {
+func judgeVisionModel(modelstr string) bool {
+	modelinfo := config.AllModels[modelstr]
+	return modelinfo.VisionCost.Base > 0
+}
+
+func verifyImage(msgInfo *embed.MsgInfo, imageurl string, detail string, modelstr string) (int, error) {
 	errImg := errors.New("error has occurred")
 	// Verify URL
 	re := regexp.MustCompile(`https?://[\w!?/+\-_~;.,*&@#$%()'[\]]+`)
@@ -568,7 +655,7 @@ func verifyImage(msgInfo *embed.MsgInfo, imageurl string, detail string) (int, e
 		return 0, errImg
 	}
 
-	visionToken, err := calcVisionToken(imageConfig.Width, imageConfig.Height, detail)
+	visionToken, err := calcVisionToken(imageConfig.Width, imageConfig.Height, detail, modelstr)
 	if err != nil {
 		embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.NoSupportedFormat)
 		return 0, errImg
@@ -586,9 +673,11 @@ const (
 	tileSize        = 512
 )
 
-func calcVisionToken(width int, height int, detail string) (int, error) {
+func calcVisionToken(width int, height int, detail string, modelstr string) (int, error) {
+	modelInfo := config.AllModels[modelstr]
+
 	if detail == "low" {
-		return lowDetailCost, nil
+		return modelInfo.VisionCost.Base, nil
 	}
 
 	if width > maxSize || height > maxSize {
@@ -608,7 +697,7 @@ func calcVisionToken(width int, height int, detail string) (int, error) {
 	tilesHeight := (height + tileSize - 1) / tileSize
 	totalTiles := tilesWidth * tilesHeight
 
-	totalCost := totalTiles*highDetailCost + additionalCost
+	totalCost := totalTiles*modelInfo.VisionCost.Tile + modelInfo.VisionCost.Base
 	return totalCost, nil
 }
 

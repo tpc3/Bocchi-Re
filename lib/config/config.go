@@ -29,23 +29,17 @@ type Config struct {
 }
 
 type Guild struct {
-	Prefix             string  `yaml:",omitempty"`
-	Lang               string  `yaml:",omitempty"`
-	Model              Model   `yaml:",omitempty"`
-	Reply              int     `yaml:",omitempty"`
-	MaxTokens          int     `yaml:",omitempty"`
-	DefaultTemperature float32 `yaml:",omitempty"`
+	Prefix              string  `yaml:",omitempty"`
+	Lang                string  `yaml:",omitempty"`
+	Model               Model   `yaml:",omitempty"`
+	Reply               int     `yaml:",omitempty"`
+	MaxCompletionTokens int     `yaml:",omitempty"`
+	DefaultTemperature  float32 `yaml:",omitempty"`
 }
 
 type Model struct {
-	Chat struct {
-		Default      string
-		Latest_3Dot5 string
-		Latest_4     string
-	}
-	Image struct {
-		Default string
-	}
+	Chat  string
+	Image string
 }
 
 const configFile = "./config.yaml"
@@ -80,7 +74,6 @@ func init() {
 	}
 
 	loadLang()
-	loadModels()
 
 	err = VerifyGuild(&CurrentConfig.Guild)
 	if err != nil {
@@ -100,19 +93,11 @@ func VerifyGuild(guild *Guild) error {
 		return errors.New("language does not exist")
 	}
 
-	_, exists = ChatModels[guild.Model.Chat.Default]
+	_, exists = AllModels[guild.Model.Chat]
 	if !exists {
 		return errors.New("model does not exist")
 	}
-	_, exists = ChatModels[guild.Model.Chat.Latest_3Dot5]
-	if !exists {
-		return errors.New("model does not exist")
-	}
-	_, exists = ChatModels[guild.Model.Chat.Latest_4]
-	if !exists {
-		return errors.New("model does not exist")
-	}
-	_, exists = ImageModels[guild.Model.Image.Default]
+	_, exists = AllModels[guild.Model.Image]
 	if !exists {
 		return errors.New("model does not exist")
 	}
@@ -133,12 +118,12 @@ func LoadGuild(id *string) (*Guild, error) {
 	file, err := os.ReadFile(CurrentConfig.Config + *id + ".yaml")
 	if os.IsNotExist(err) {
 		return &Guild{
-			Prefix:             CurrentConfig.Guild.Prefix,
-			Lang:               CurrentConfig.Guild.Lang,
-			Model:              CurrentConfig.Guild.Model,
-			Reply:              CurrentConfig.Guild.Reply,
-			MaxTokens:          CurrentConfig.Guild.MaxTokens,
-			DefaultTemperature: CurrentConfig.Guild.DefaultTemperature,
+			Prefix:              CurrentConfig.Guild.Prefix,
+			Lang:                CurrentConfig.Guild.Lang,
+			Model:               CurrentConfig.Guild.Model,
+			Reply:               CurrentConfig.Guild.Reply,
+			MaxCompletionTokens: CurrentConfig.Guild.MaxCompletionTokens,
+			DefaultTemperature:  CurrentConfig.Guild.DefaultTemperature,
 		}, nil
 	} else if err != nil {
 		return nil, err
@@ -155,7 +140,7 @@ func LoadGuild(id *string) (*Guild, error) {
 }
 
 func SaveGuild(id *string, guild *Guild) error {
-	if guild.Prefix == CurrentConfig.Guild.Prefix && guild.Lang == CurrentConfig.Guild.Lang && guild.Model.Chat.Default == CurrentConfig.Guild.Model.Chat.Default && guild.Model.Chat.Latest_3Dot5 == CurrentConfig.Guild.Model.Chat.Latest_3Dot5 && guild.Model.Chat.Latest_4 == CurrentConfig.Guild.Model.Chat.Latest_4 && guild.Model.Image.Default == CurrentConfig.Guild.Model.Image.Default && guild.Reply == CurrentConfig.Guild.Reply && guild.MaxTokens == CurrentConfig.Guild.MaxTokens && guild.DefaultTemperature == CurrentConfig.Guild.DefaultTemperature {
+	if guild.Prefix == CurrentConfig.Guild.Prefix && guild.Lang == CurrentConfig.Guild.Lang && guild.Model.Chat == CurrentConfig.Guild.Model.Chat && guild.Model.Image == CurrentConfig.Guild.Model.Image && guild.Reply == CurrentConfig.Guild.Reply && guild.MaxCompletionTokens == CurrentConfig.Guild.MaxCompletionTokens && guild.DefaultTemperature == CurrentConfig.Guild.DefaultTemperature {
 		return ResetGuild(id, guild)
 	}
 

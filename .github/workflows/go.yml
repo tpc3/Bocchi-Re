@@ -24,24 +24,25 @@ jobs:
             goarch: arm64
         
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: Set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.19
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.19
 
-    - name: Build
-      run: mkdir -p bin/${{ matrix.goos }}/${{ matrix.goarch }}
-    - name: Build
-      run: go build -o bin/${{ matrix.goos }}/${{ matrix.goarch }}/
-      env:
-        CGO_ENABLED: 0
-        GOARCH: ${{ matrix.goarch }}
-        GOOS: ${{ matrix.goos }}
+      - name: Create output directory
+        run: mkdir -p bin/${{ matrix.goos }}/${{ matrix.goarch }}
 
-    - name: Upload a Build Artifact
-      uses: actions/upload-artifact@v2.2.4
-      with:
-      # Artifact name
-        path: bin
+      - name: Build
+        run: go build -o bin/${{ matrix.goos }}/${{ matrix.goarch }}/
+        env:
+          CGO_ENABLED: 0
+          GOARCH: ${{ matrix.goarch }}
+          GOOS: ${{ matrix.goos }}
+
+      - name: Upload a Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: bin

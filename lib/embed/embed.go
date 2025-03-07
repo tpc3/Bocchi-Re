@@ -12,11 +12,12 @@ import (
 var UnknownErrorNum int
 
 const (
-	ColorGPT3   = 0x10a37f
-	ColorGPT4   = 0xab68ff
-	ColorImage  = 0x02d1e0
-	ColorPink   = 0xf50057
-	ColorSystem = 0xffc107
+	ColorGPT3      = 0x10a37f
+	ColorGPT4      = 0xab68ff
+	Color_o_series = 0xff8082
+	ColorImage     = 0x02d1e0
+	ColorPink      = 0xf50057
+	ColorSystem    = 0xffc107
 )
 
 type MsgInfo struct {

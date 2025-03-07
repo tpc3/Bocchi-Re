@@ -69,6 +69,8 @@ func MessageCreate(session *discordgo.Session, orgMsg *discordgo.MessageCreate) 
 			cmds.ConfigCmd(&msgInfo, *guild)
 		case cmds.Cost:
 			cmds.CostCmd(&msgInfo)
+		case cmds.Models:
+			cmds.ModelsCmd(&msgInfo)
 		}
 
 		if config.CurrentConfig.Debug {

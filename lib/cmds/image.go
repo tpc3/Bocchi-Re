@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/sashabaranov/go-openai"
 	"github.com/tpc3/Bocchi-Re/lib/config"
+	"github.com/tpc3/Bocchi-Re/lib/database"
 	"github.com/tpc3/Bocchi-Re/lib/embed"
 )
 
@@ -27,31 +29,25 @@ func ImageCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 		return
 	}
 
-	content, modelstr, quality, size, style, err := splitImageMsg(msg)
+	start := time.Now()
+	request := openai.ImageRequest{}
+	request.ResponseFormat = openai.CreateImageResponseFormatURL
 
-	if err != nil || content == "" {
-		embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.SubCmd)
-		return
+	content, modelstr, quality, size, style, err := splitImageMsg(msg, msgInfo, guild, &request)
+
+	if err != nil {
+		if err.Error() == "no model" {
+			return
+		} else if content == "" {
+			embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.SubCmd)
+			return
+		}
 	}
 
 	// Verify arguments
 	if quality == "miss" || size == "miss" || style == "miss" {
 		embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.SubCmd)
 		return
-	}
-
-	start := time.Now()
-	request := openai.ImageRequest{}
-	request.Prompt = content
-	request.ResponseFormat = openai.CreateImageResponseFormatURL
-
-	// Decision model
-	if modelstr != "" {
-		if model, exist := config.ImageModels[modelstr]; exist {
-			request.Model = model
-		}
-	} else {
-		request.Model = guild.Model.Image.Default
 	}
 
 	// Error handling to size
@@ -69,7 +65,7 @@ func ImageCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 
 	// Quality and style can use DALL-E-3 only.
 	if (quality != "" || style != "") && request.Model == openai.CreateImageModelDallE2 {
-		embed.WarningReply(msgInfo, config.Lang[msgInfo.Lang].Warning.NoSupportedParameter)
+		embed.WarningReply(msgInfo, config.Lang[msgInfo.Lang].Warning.NoSupportedParameterImage)
 	}
 	if request.Model == openai.CreateImageModelDallE3 {
 		if quality != "" {
@@ -98,14 +94,30 @@ func ImageCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 		}
 	}
 
-	// Save cost
-	data, err := config.LoadData(&msgInfo.OrgMsg.GuildID)
-	if err != nil {
-		embed.UnknownErrorEmbed(msgInfo, err)
-		return
+	// Add usage to database
+	modelName := request.Model
+	usageType := ""
+	if modelName == openai.CreateImageModelDallE2 {
+		if request.Size == "256x256" {
+			usageType = "dall-e-2-small"
+		} else if request.Size == "512x512" {
+			usageType = "dall-e-2-medium"
+		} else {
+			usageType = "dall-e-2-big"
+		}
+	} else {
+		// dall-e-3
+		q := request.Quality
+		sz := request.Size
+		if strings.Contains(sz, "1792") {
+			usageType = "dall-e-3-" + q + "-rectangle"
+		} else {
+			usageType = "dall-e-3-" + q + "-square"
+		}
 	}
-	err = config.SaveData(data, &msgInfo.OrgMsg.GuildID, &request.Model, request.Size, request.Quality, nil, nil, nil)
-	if err != nil {
+
+	if err := database.AddUsage(msgInfo.OrgMsg.GuildID, modelName, usageType, len(response.Data)); err != nil {
+		log.Println("DB追加エラー:", err)
 		embed.WarningReply(msgInfo, config.Lang[msgInfo.Lang].Warning.DataSaveError)
 	}
 
@@ -167,7 +179,7 @@ func ImageCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 	embed.ReplyEmbed(reply, msgInfo, msgEmbed)
 }
 
-func splitImageMsg(msg *string) (string, string, string, string, string, error) {
+func splitImageMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, request *openai.ImageRequest) (string, string, string, string, string, error) {
 	var (
 		content, modelstr, quality, size, style string
 		prm                                     bool
@@ -176,6 +188,7 @@ func splitImageMsg(msg *string) (string, string, string, string, string, error) 
 
 	str := strings.Split(*msg, " ")
 	prm = true
+	modelstr = guild.Model.Image
 
 	for i := 0; i < len(str); i++ {
 		if strings.HasPrefix(str[i], "-") && prm {
@@ -213,6 +226,20 @@ func splitImageMsg(msg *string) (string, string, string, string, string, error) 
 			prm = false
 		}
 	}
+
+	//verify model
+	if modelstr != guild.Model.Image {
+		modelInfo, exist := config.AllModels[modelstr]
+		if exist {
+			request.Model = modelInfo.Key
+		} else {
+			embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.NoModel)
+			err = errors.New("no model")
+			return content, modelstr, quality, size, style, err
+		}
+	}
+	request.Model = modelstr
+	request.Prompt = content
 
 	return content, modelstr, quality, size, style, err
 }

@@ -9,9 +9,12 @@ import (
 	"github.com/common-nighthawk/go-figure"
 	"github.com/tpc3/Bocchi-Re/lib"
 	"github.com/tpc3/Bocchi-Re/lib/config"
+	"github.com/tpc3/Bocchi-Re/lib/database"
 )
 
 func main() {
+	database.InitDB(config.CurrentConfig.Data + "tokens.sqlite3")
+
 	discord, err := discordgo.New("Bot " + config.CurrentConfig.Discord.Token)
 	if err != nil {
 		log.Fatal("Error creating Discord session: ", err)
