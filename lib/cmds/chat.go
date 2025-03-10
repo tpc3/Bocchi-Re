@@ -491,7 +491,7 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 		}
 	}
 
-	if modelstr != guild.Model.Chat {
+	if modelstr != guild.Model.Chat || modelstr != "" {
 		request.Model = modelstr
 	}
 
