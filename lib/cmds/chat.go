@@ -39,7 +39,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 	start := time.Now()
 	request := openai.ChatCompletionRequest{}
 
-	content, modelstr, systemstr, imageurl, detail, reasoning_effort, temperature, top_p, frequency_penalty, repnum, maxCompletionTokens, seed, filter, err := splitChatMsg(msg, msgInfo, guild, &request)
+	content, modelstr, systemstr, imageurl, detail, reasoning_effort, temperature, top_p, frequency_penalty, repnum, max_completion_tokens, seed, filter, err := splitChatMsg(msg, msgInfo, guild, &request)
 
 	if err != nil {
 		if err.Error() == "no model" {
@@ -136,8 +136,8 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 			if seed != 0 {
 				request.Seed = &seed
 			}
-			if maxCompletionTokens != 0 {
-				request.MaxCompletionTokens = maxCompletionTokens
+			if max_completion_tokens != 0 {
+				request.MaxCompletionTokens = max_completion_tokens
 			} else {
 				request.MaxCompletionTokens = guild.MaxCompletionTokens
 			}
@@ -213,8 +213,8 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 		if seed != 0 {
 			request.Seed = &seed
 		}
-		if maxCompletionTokens != 0 {
-			request.MaxCompletionTokens = maxCompletionTokens
+		if max_completion_tokens != 0 {
+			request.MaxCompletionTokens = max_completion_tokens
 		} else {
 			request.MaxCompletionTokens = guild.MaxCompletionTokens
 		}
@@ -317,7 +317,7 @@ func goBackMessage(request openai.ChatCompletionRequest, msgInfo *embed.MsgInfo,
 			break
 		}
 		_, _, trimmed := utils.TrimPrefix(repMsg.Content, guild.Prefix, msgInfo.Session.State.User.Mention())
-		content, modelstr, systemstr, imageurl, detail, reasoning_effort, temperature, top_p, frequency_penalty, _, maxCompletionTokens, seed, _, _ := splitChatMsg(&trimmed, msgInfo, guild, &request)
+		content, modelstr, systemstr, imageurl, detail, reasoning_effort, temperature, top_p, frequency_penalty, _, max_completion_tokens, seed, _, _ := splitChatMsg(&trimmed, msgInfo, guild, &request)
 
 		// Setting parameter
 		if temperature != 1.0 && request.Temperature == 1.0 {
@@ -329,8 +329,8 @@ func goBackMessage(request openai.ChatCompletionRequest, msgInfo *embed.MsgInfo,
 		if seed != 0 && request.Seed == nil {
 			request.Seed = &seed
 		}
-		if maxCompletionTokens != 0 && request.MaxCompletionTokens == guild.MaxCompletionTokens {
-			request.MaxCompletionTokens = maxCompletionTokens
+		if max_completion_tokens != 0 && request.MaxCompletionTokens == guild.MaxCompletionTokens {
+			request.MaxCompletionTokens = max_completion_tokens
 		} else {
 			request.MaxCompletionTokens = guild.MaxCompletionTokens
 		}
@@ -419,7 +419,7 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 		temperature, top_p                                               float64
 		frequency_penalty                                                float32
 		prm, filter                                                      bool
-		repnum, maxCompletionTokens, seed                                int
+		repnum, max_completion_tokens, seed                              int
 		err                                                              error
 	)
 
@@ -464,8 +464,8 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 			case "-l":
 				repnum, err = strconv.Atoi(str[i+1])
 				i += 1
-			case "--maxCompletiontokens":
-				maxCompletionTokens, err = strconv.Atoi(str[i+1])
+			case "--max_completion_tokens":
+				max_completion_tokens, err = strconv.Atoi(str[i+1])
 				i += 1
 			case "--seed":
 				seed, _ = strconv.Atoi(str[i+1])
@@ -495,12 +495,12 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 		} else {
 			embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.NoModel)
 			err = errors.New("no model")
-			return content, modelstr, systemstr, imageurl, detail, reasoning_effort, temperature, top_p, frequency_penalty, repnum, maxCompletionTokens, seed, filter, err
+			return content, modelstr, systemstr, imageurl, detail, reasoning_effort, temperature, top_p, frequency_penalty, repnum, max_completion_tokens, seed, filter, err
 		}
 	}
 	request.Model = modelstr
 
-	return content, modelstr, systemstr, imageurl, detail, reasoning_effort, temperature, top_p, frequency_penalty, repnum, maxCompletionTokens, seed, filter, err
+	return content, modelstr, systemstr, imageurl, detail, reasoning_effort, temperature, top_p, frequency_penalty, repnum, max_completion_tokens, seed, filter, err
 }
 
 func runApi(msgInfo *embed.MsgInfo, request openai.ChatCompletionRequest, content string, filter bool, start time.Time, visionToken int) {
