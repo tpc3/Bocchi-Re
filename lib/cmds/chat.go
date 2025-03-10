@@ -124,7 +124,6 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 			}
 
 			// Setting parameter
-			request.Model = modelstr
 			if temperature != 0.0 {
 				request.Temperature = float32(temperature)
 			} else {
@@ -498,7 +497,10 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 			return content, modelstr, systemstr, imageurl, detail, reasoning_effort, temperature, top_p, frequency_penalty, repnum, max_completion_tokens, seed, filter, err
 		}
 	}
-	request.Model = modelstr
+
+	if modelstr != guild.Model.Chat {
+		request.Model = modelstr
+	}
 
 	return content, modelstr, systemstr, imageurl, detail, reasoning_effort, temperature, top_p, frequency_penalty, repnum, max_completion_tokens, seed, filter, err
 }
