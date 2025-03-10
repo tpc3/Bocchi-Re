@@ -29,12 +29,11 @@ type Config struct {
 }
 
 type Guild struct {
-	Prefix              string  `yaml:",omitempty"`
-	Lang                string  `yaml:",omitempty"`
-	Model               Model   `yaml:",omitempty"`
-	Reply               int     `yaml:",omitempty"`
-	MaxCompletionTokens int     `yaml:",omitempty"`
-	DefaultTemperature  float32 `yaml:",omitempty"`
+	Prefix              string `yaml:",omitempty"`
+	Lang                string `yaml:",omitempty"`
+	Model               Model  `yaml:",omitempty"`
+	Reply               int    `yaml:",omitempty"`
+	MaxCompletionTokens int    `yaml:",omitempty"`
 }
 
 type Model struct {
@@ -102,10 +101,6 @@ func VerifyGuild(guild *Guild) error {
 		return errors.New("model does not exist")
 	}
 
-	if guild.DefaultTemperature < 0.0 || 2.0 < guild.DefaultTemperature {
-		return errors.New("temperature out of range")
-	}
-
 	return nil
 }
 
@@ -123,7 +118,6 @@ func LoadGuild(id *string) (*Guild, error) {
 			Model:               CurrentConfig.Guild.Model,
 			Reply:               CurrentConfig.Guild.Reply,
 			MaxCompletionTokens: CurrentConfig.Guild.MaxCompletionTokens,
-			DefaultTemperature:  CurrentConfig.Guild.DefaultTemperature,
 		}, nil
 	} else if err != nil {
 		return nil, err
@@ -140,7 +134,7 @@ func LoadGuild(id *string) (*Guild, error) {
 }
 
 func SaveGuild(id *string, guild *Guild) error {
-	if guild.Prefix == CurrentConfig.Guild.Prefix && guild.Lang == CurrentConfig.Guild.Lang && guild.Model.Chat == CurrentConfig.Guild.Model.Chat && guild.Model.Image == CurrentConfig.Guild.Model.Image && guild.Reply == CurrentConfig.Guild.Reply && guild.MaxCompletionTokens == CurrentConfig.Guild.MaxCompletionTokens && guild.DefaultTemperature == CurrentConfig.Guild.DefaultTemperature {
+	if guild.Prefix == CurrentConfig.Guild.Prefix && guild.Lang == CurrentConfig.Guild.Lang && guild.Model.Chat == CurrentConfig.Guild.Model.Chat && guild.Model.Image == CurrentConfig.Guild.Model.Image && guild.Reply == CurrentConfig.Guild.Reply && guild.MaxCompletionTokens == CurrentConfig.Guild.MaxCompletionTokens {
 		return ResetGuild(id, guild)
 	}
 

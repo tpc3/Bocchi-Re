@@ -124,11 +124,6 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 			}
 
 			// Setting parameter
-			if temperature != 0.0 {
-				request.Temperature = float32(temperature)
-			} else {
-				request.Temperature = guild.DefaultTemperature
-			}
 			if top_p != 0.0 {
 				request.TopP = float32(top_p)
 			}
@@ -203,8 +198,6 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 		// Setting parameter
 		if temperature != 0.0 {
 			request.Temperature = float32(temperature)
-		} else {
-			request.Temperature = guild.DefaultTemperature
 		}
 		if top_p != 0.0 {
 			request.TopP = float32(top_p)
