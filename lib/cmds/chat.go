@@ -28,6 +28,8 @@ import (
 
 const Chat = "chat"
 
+var search bool
+
 func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 	msgInfo.Session.MessageReactionAdd(msgInfo.OrgMsg.ChannelID, msgInfo.OrgMsg.ID, "🤔")
 
@@ -196,11 +198,13 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 		// No Reply
 
 		// Setting parameter
-		if temperature != 0.0 {
-			request.Temperature = float32(temperature)
-		}
-		if top_p != 0.0 {
-			request.TopP = float32(top_p)
+		if !search {
+			if temperature != 0.0 {
+				request.Temperature = float32(temperature)
+			}
+			if top_p != 0.0 {
+				request.TopP = float32(top_p)
+			}
 		}
 		if seed != 0 {
 			request.Seed = &seed
@@ -312,11 +316,13 @@ func goBackMessage(request openai.ChatCompletionRequest, msgInfo *embed.MsgInfo,
 		content, modelstr, systemstr, imageurl, detail, reasoning_effort, temperature, top_p, frequency_penalty, _, max_completion_tokens, seed, _, _ := splitChatMsg(&trimmed, msgInfo, guild, &request)
 
 		// Setting parameter
-		if temperature != 1.0 && request.Temperature == 1.0 {
-			request.Temperature = float32(temperature)
-		}
-		if top_p != 1.0 && request.TopP == 1.0 {
-			request.TopP = float32(top_p)
+		if !search {
+			if temperature != 1.0 && request.Temperature == 1.0 {
+				request.Temperature = float32(temperature)
+			}
+			if top_p != 1.0 && request.TopP == 1.0 {
+				request.TopP = float32(top_p)
+			}
 		}
 		if seed != 0 && request.Seed == nil {
 			request.Seed = &seed
@@ -494,6 +500,9 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 	if modelstr != guild.Model.Chat || modelstr != "" {
 		request.Model = modelstr
 	}
+	if modelstr == "gpt-4o-search-preview" || modelstr == "gpt-4o-mini-search-preview" {
+		search = true
+	}
 
 	return content, modelstr, systemstr, imageurl, detail, reasoning_effort, temperature, top_p, frequency_penalty, repnum, max_completion_tokens, seed, filter, err
 }
@@ -542,6 +551,12 @@ func runApi(msgInfo *embed.MsgInfo, request openai.ChatCompletionRequest, conten
 	}
 	if visionToken > 0 {
 		if err := database.AddUsage(msgInfo.OrgMsg.GuildID, request.Model, "vision_tokens", visionToken); err != nil {
+			log.Println("DB追加エラー:", err)
+			embed.WarningReply(msgInfo, config.Lang[msgInfo.Lang].Warning.DataSaveError)
+		}
+	}
+	if search {
+		if err := database.AddUsage(msgInfo.OrgMsg.GuildID, request.Model, "search_tokens", 1); err != nil {
 			log.Println("DB追加エラー:", err)
 			embed.WarningReply(msgInfo, config.Lang[msgInfo.Lang].Warning.DataSaveError)
 		}

@@ -19,6 +19,9 @@ type ModelInfo struct {
 	CompletionCost float64    // USD 1M tokens
 	VisionCost     VisionCost // USD 1M tokens
 
+	// Web search Model
+	SearchCost SearchCost // USD 1k calls
+
 	// Image Model
 	ImageCost map[string]float64
 }
@@ -27,6 +30,12 @@ type VisionCost struct {
 	Fixed float64
 	Base  int
 	Tile  int
+}
+
+type SearchCost struct {
+	Low    float64
+	Medium float64
+	High   float64
 }
 
 var AllModels = map[string]ModelInfo{
@@ -65,6 +74,29 @@ var AllModels = map[string]ModelInfo{
 			Fixed: 2.5,
 			Base:  85,
 			Tile:  170,
+		},
+		SearchCost: SearchCost{
+			Low:    30.00,
+			Medium: 35.00,
+			High:   50.00,
+		},
+		ImageCost: nil,
+	},
+	"gpt-4o-search-preview": {
+		Key:            "gpt-4o-search-preview",
+		Manufacturer:   "OpenAI",
+		Type:           ModelTypeText,
+		PromptCost:     2.50,
+		CompletionCost: 10.0,
+		VisionCost: VisionCost{
+			Fixed: 2.5,
+			Base:  85,
+			Tile:  170,
+		},
+		SearchCost: SearchCost{
+			Low:    30.00,
+			Medium: 35.00,
+			High:   50.00,
 		},
 		ImageCost: nil,
 	},
@@ -117,6 +149,29 @@ var AllModels = map[string]ModelInfo{
 			Fixed: 0.15,
 			Base:  2833,
 			Tile:  5667,
+		},
+		SearchCost: SearchCost{
+			Low:    25.00,
+			Medium: 27.50,
+			High:   30.00,
+		},
+		ImageCost: nil,
+	},
+	"gpt-4o-mini-search-preview": {
+		Key:            "gpt-4o-mini-search-preview",
+		Manufacturer:   "OpenAI",
+		Type:           ModelTypeText,
+		PromptCost:     0.150,
+		CompletionCost: 0.600,
+		VisionCost: VisionCost{
+			Fixed: 0.15,
+			Base:  2833,
+			Tile:  5667,
+		},
+		SearchCost: SearchCost{
+			Low:    25.00,
+			Medium: 27.50,
+			High:   30.00,
 		},
 		ImageCost: nil,
 	},
