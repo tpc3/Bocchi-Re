@@ -141,6 +141,9 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 			if frequency_penalty != 0.0 {
 				request.FrequencyPenalty = frequency_penalty
 			}
+			if systemstr != "" {
+				request.Messages = append(request.Messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleSystem, Content: systemstr})
+			}
 
 			if imageurl != "" {
 
@@ -156,9 +159,6 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 				}
 				visionToken = visionToken + repVisionToken
 
-				if systemstr != "" {
-					request.Messages = append(request.Messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleSystem, Content: systemstr})
-				}
 				messages := []openai.ChatCompletionMessage{
 					{
 						Role: openai.ChatMessageRoleUser,
