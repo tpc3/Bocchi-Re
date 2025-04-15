@@ -155,7 +155,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 				}
 
 				// Verify imageURL
-				visionToken, err = verifyImage(msgInfo, imageurl, detail, modelstr)
+				err = verifyImage(msgInfo, imageurl, detail, modelstr)
 				if err != nil {
 					return
 				}
@@ -229,7 +229,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 			}
 
 			// Verify imageURL
-			visionToken, err = verifyImage(msgInfo, imageurl, detail, modelstr)
+			err = verifyImage(msgInfo, imageurl, detail, modelstr)
 			if err != nil {
 				return
 			}
@@ -348,7 +348,7 @@ func goBackMessage(request openai.ChatCompletionRequest, msgInfo *embed.MsgInfo,
 			}
 
 			// Verify imageURL
-			visionToken, err = verifyImage(msgInfo, imageurl, detail, modelstr)
+			err = verifyImage(msgInfo, imageurl, detail, modelstr)
 			if err != nil {
 				return request, visionToken, err
 			}
@@ -549,12 +549,6 @@ func runApi(msgInfo *embed.MsgInfo, request openai.ChatCompletionRequest, conten
 			embed.WarningReply(msgInfo, config.Lang[msgInfo.Lang].Warning.DataSaveError)
 		}
 	}
-	if visionToken > 0 {
-		if err := database.AddUsage(msgInfo.OrgMsg.GuildID, request.Model, "vision_tokens", visionToken); err != nil {
-			log.Println("DB追加エラー:", err)
-			embed.WarningReply(msgInfo, config.Lang[msgInfo.Lang].Warning.DataSaveError)
-		}
-	}
 	if search {
 		if err := database.AddUsage(msgInfo.OrgMsg.GuildID, request.Model, "search_tokens", 1); err != nil {
 			log.Println("DB追加エラー:", err)
@@ -610,22 +604,22 @@ func runApi(msgInfo *embed.MsgInfo, request openai.ChatCompletionRequest, conten
 
 func judgeVisionModel(modelstr string) bool {
 	modelinfo := config.AllModels[modelstr]
-	return modelinfo.VisionCost.Base > 0
+	return modelinfo.SupportVision
 }
 
-func verifyImage(msgInfo *embed.MsgInfo, imageurl string, detail string, modelstr string) (int, error) {
+func verifyImage(msgInfo *embed.MsgInfo, imageurl string, detail string, modelstr string) error {
 	errImg := errors.New("error has occurred")
 	// Verify URL
 	re := regexp.MustCompile(`https?://[\w!?/+\-_~;.,*&@#$%()'[\]]+`)
 	if !re.MatchString(imageurl) {
 		embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.NoImg)
-		return 0, errImg
+		return errImg
 	}
 
 	// Verify detail
 	if detail == "miss" {
 		embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.SubCmd)
-		return 0, errImg
+		return errImg
 	} else if detail == "" {
 		detail = "low"
 	}
@@ -635,92 +629,35 @@ func verifyImage(msgInfo *embed.MsgInfo, imageurl string, detail string, modelst
 	if err != nil {
 		if strings.Contains(err.Error(), "no such host") {
 			embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.BrokenLink)
-			return 0, err
+			return err
 		} else {
 			log.Fatal("Failed to get image: ", err)
-			return 0, err
+			return err
 		}
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.BrokenLink)
-		return 0, errImg
+		return errImg
 	}
 
 	// Decode image
-	imageConfig, imageType, err := image.DecodeConfig(resp.Body)
+	_, imageType, err := image.DecodeConfig(resp.Body)
 	if err != nil {
 		if strings.Contains(err.Error(), "unknown format") {
 			embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.NoSupportedFormat)
-			return 0, err
+			return err
 		} else {
 			log.Fatal("Fialed to decode: ", err)
-			return 0, err
+			return err
 		}
 	}
 
 	// Verify image format
 	if imageType != "png" && imageType != "jpeg" && imageType != "webp" && imageType != "gif" {
 		embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.NoSupportedFormat)
-		return 0, errImg
+		return errImg
 	}
 
-	visionToken, err := calcVisionToken(imageConfig.Width, imageConfig.Height, detail, modelstr)
-	if err != nil {
-		embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.NoSupportedFormat)
-		return 0, errImg
-	}
-
-	return visionToken, nil
-}
-
-const (
-	lowDetailCost   = 85
-	highDetailCost  = 170
-	additionalCost  = 85
-	maxSize         = 2048
-	targetShortSide = 768
-	tileSize        = 512
-)
-
-func calcVisionToken(width int, height int, detail string, modelstr string) (int, error) {
-	modelInfo := config.AllModels[modelstr]
-
-	if detail == "low" {
-		return modelInfo.VisionCost.Base, nil
-	}
-
-	if width > maxSize || height > maxSize {
-		scaleFactor := float64(maxSize) / float64(max(width, height))
-		width = int(float64(width) * scaleFactor)
-		height = int(float64(height) * scaleFactor)
-	}
-
-	shortSide := min(width, height)
-	if shortSide > targetShortSide {
-		scaleFactor := float64(targetShortSide) / float64(shortSide)
-		width = int(float64(width) * scaleFactor)
-		height = int(float64(height) * scaleFactor)
-	}
-
-	tilesWidth := (width + tileSize - 1) / tileSize
-	tilesHeight := (height + tileSize - 1) / tileSize
-	totalTiles := tilesWidth * tilesHeight
-
-	totalCost := totalTiles*modelInfo.VisionCost.Tile + modelInfo.VisionCost.Base
-	return totalCost, nil
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
+	return nil
 }

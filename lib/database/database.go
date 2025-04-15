@@ -207,8 +207,6 @@ func CalcCost(records []UsageRecord) float64 {
 			case "prompt_cache_tokens":
 				// Cache tokens are half the price of prompt tokens
 				totalUSD += (usageCount / 1000000.0) * (modelInfo.PromptCost / 2.0)
-			case "vision_tokens":
-				totalUSD += (usageCount / 1000000.0) * modelInfo.VisionCost.Fixed
 			}
 
 		} else if modelInfo.Type == config.ModelTypeImage {

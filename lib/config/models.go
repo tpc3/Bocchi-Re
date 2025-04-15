@@ -15,21 +15,15 @@ type ModelInfo struct {
 	Type         ModelType
 
 	// Text Model
-	PromptCost     float64    // USD 1M tokens
-	CompletionCost float64    // USD 1M tokens
-	VisionCost     VisionCost // USD 1M tokens
+	SupportVision  bool
+	PromptCost     float64 // USD 1M tokens
+	CompletionCost float64 // USD 1M tokens
 
 	// Web search Model
 	SearchCost SearchCost // USD 1k calls
 
 	// Image Model
 	ImageCost map[string]float64
-}
-
-type VisionCost struct {
-	Fixed float64
-	Base  int
-	Tile  int
 }
 
 type SearchCost struct {
@@ -45,12 +39,8 @@ var AllModels = map[string]ModelInfo{
 		Type:           ModelTypeText,
 		PromptCost:     2.00,
 		CompletionCost: 8.00,
-		VisionCost: VisionCost{
-			Fixed: 75,
-			Base:  85,
-			Tile:  170,
-		},
-		ImageCost: nil,
+		SupportVision:  true,
+		ImageCost:      nil,
 	},
 	"gpt-4.1-2025-04-14": {
 		Key:            "gpt-4.1-2025-04-14",
@@ -58,12 +48,8 @@ var AllModels = map[string]ModelInfo{
 		Type:           ModelTypeText,
 		PromptCost:     2.00,
 		CompletionCost: 8.00,
-		VisionCost: VisionCost{
-			Fixed: 75,
-			Base:  85,
-			Tile:  170,
-		},
-		ImageCost: nil,
+		SupportVision:  true,
+		ImageCost:      nil,
 	},
 	"gpt-4.1-mini": {
 		Key:            "gpt-4.1-mini",
@@ -71,12 +57,8 @@ var AllModels = map[string]ModelInfo{
 		Type:           ModelTypeText,
 		PromptCost:     0.40,
 		CompletionCost: 1.60,
-		VisionCost: VisionCost{
-			Fixed: 75,
-			Base:  85,
-			Tile:  170,
-		},
-		ImageCost: nil,
+		SupportVision:  true,
+		ImageCost:      nil,
 	},
 	"gpt-4.1-mini-2025-04-14": {
 		Key:            "gpt-4.1-mini-2025-04-14",
@@ -84,12 +66,8 @@ var AllModels = map[string]ModelInfo{
 		Type:           ModelTypeText,
 		PromptCost:     0.40,
 		CompletionCost: 1.60,
-		VisionCost: VisionCost{
-			Fixed: 75,
-			Base:  85,
-			Tile:  170,
-		},
-		ImageCost: nil,
+		SupportVision:  true,
+		ImageCost:      nil,
 	},
 	"gpt-4.1-nano": {
 		Key:            "gpt-4.1-nano",
@@ -97,12 +75,8 @@ var AllModels = map[string]ModelInfo{
 		Type:           ModelTypeText,
 		PromptCost:     0.10,
 		CompletionCost: 0.40,
-		VisionCost: VisionCost{
-			Fixed: 75,
-			Base:  85,
-			Tile:  170,
-		},
-		ImageCost: nil,
+		SupportVision:  true,
+		ImageCost:      nil,
 	},
 	"gpt-4.1-nano-2025-04-14": {
 		Key:            "gpt-4.1-nano-2025-04-14",
@@ -110,12 +84,8 @@ var AllModels = map[string]ModelInfo{
 		Type:           ModelTypeText,
 		PromptCost:     0.10,
 		CompletionCost: 0.40,
-		VisionCost: VisionCost{
-			Fixed: 75,
-			Base:  85,
-			Tile:  170,
-		},
-		ImageCost: nil,
+		SupportVision:  true,
+		ImageCost:      nil,
 	},
 	"gpt-4.5-preview": {
 		Key:            "gpt-4.5-preview",
@@ -123,12 +93,8 @@ var AllModels = map[string]ModelInfo{
 		Type:           ModelTypeText,
 		PromptCost:     75.0,
 		CompletionCost: 150.0,
-		VisionCost: VisionCost{
-			Fixed: 75,
-			Base:  85,
-			Tile:  170,
-		},
-		ImageCost: nil,
+		SupportVision:  true,
+		ImageCost:      nil,
 	},
 	"gpt-4.5-preview-2025-02-27": {
 		Key:            "gpt-4.5-preview-2025-02-27",
@@ -136,12 +102,8 @@ var AllModels = map[string]ModelInfo{
 		Type:           ModelTypeText,
 		PromptCost:     75.0,
 		CompletionCost: 150.0,
-		VisionCost: VisionCost{
-			Fixed: 75,
-			Base:  85,
-			Tile:  170,
-		},
-		ImageCost: nil,
+		SupportVision:  true,
+		ImageCost:      nil,
 	},
 	"gpt-4o": {
 		Key:            "gpt-4o",
@@ -149,11 +111,7 @@ var AllModels = map[string]ModelInfo{
 		Type:           ModelTypeText,
 		PromptCost:     2.50,
 		CompletionCost: 10.0,
-		VisionCost: VisionCost{
-			Fixed: 2.5,
-			Base:  85,
-			Tile:  170,
-		},
+		SupportVision:  true,
 		SearchCost: SearchCost{
 			Low:    30.00,
 			Medium: 35.00,
@@ -167,11 +125,7 @@ var AllModels = map[string]ModelInfo{
 		Type:           ModelTypeText,
 		PromptCost:     2.50,
 		CompletionCost: 10.0,
-		VisionCost: VisionCost{
-			Fixed: 2.5,
-			Base:  85,
-			Tile:  170,
-		},
+		SupportVision:  true,
 		SearchCost: SearchCost{
 			Low:    30.00,
 			Medium: 35.00,
@@ -185,12 +139,8 @@ var AllModels = map[string]ModelInfo{
 		Type:           ModelTypeText,
 		PromptCost:     2.50,
 		CompletionCost: 10.0,
-		VisionCost: VisionCost{
-			Fixed: 2.5,
-			Base:  85,
-			Tile:  170,
-		},
-		ImageCost: nil,
+		SupportVision:  true,
+		ImageCost:      nil,
 	},
 	"gpt-4o-2024-08-06": {
 		Key:            "gpt-4o-2024-08-06",
@@ -198,12 +148,8 @@ var AllModels = map[string]ModelInfo{
 		Type:           ModelTypeText,
 		PromptCost:     2.50,
 		CompletionCost: 10.0,
-		VisionCost: VisionCost{
-			Fixed: 2.5,
-			Base:  85,
-			Tile:  170,
-		},
-		ImageCost: nil,
+		SupportVision:  true,
+		ImageCost:      nil,
 	},
 	"gpt-4o-2024-05-13": {
 		Key:            "gpt-4o-2024-05-13",
@@ -211,12 +157,8 @@ var AllModels = map[string]ModelInfo{
 		Type:           ModelTypeText,
 		PromptCost:     5.0,
 		CompletionCost: 15.0,
-		VisionCost: VisionCost{
-			Fixed: 2.5,
-			Base:  85,
-			Tile:  170,
-		},
-		ImageCost: nil,
+		SupportVision:  true,
+		ImageCost:      nil,
 	},
 	"gpt-4o-mini": {
 		Key:            "gpt-4o-mini",
@@ -224,11 +166,7 @@ var AllModels = map[string]ModelInfo{
 		Type:           ModelTypeText,
 		PromptCost:     0.150,
 		CompletionCost: 0.600,
-		VisionCost: VisionCost{
-			Fixed: 0.15,
-			Base:  2833,
-			Tile:  5667,
-		},
+		SupportVision:  true,
 		SearchCost: SearchCost{
 			Low:    25.00,
 			Medium: 27.50,
@@ -242,11 +180,7 @@ var AllModels = map[string]ModelInfo{
 		Type:           ModelTypeText,
 		PromptCost:     0.150,
 		CompletionCost: 0.600,
-		VisionCost: VisionCost{
-			Fixed: 0.15,
-			Base:  2833,
-			Tile:  5667,
-		},
+		SupportVision:  true,
 		SearchCost: SearchCost{
 			Low:    25.00,
 			Medium: 27.50,
@@ -260,12 +194,8 @@ var AllModels = map[string]ModelInfo{
 		Type:           ModelTypeText,
 		PromptCost:     0.150,
 		CompletionCost: 0.600,
-		VisionCost: VisionCost{
-			Fixed: 0.15,
-			Base:  2833,
-			Tile:  5667,
-		},
-		ImageCost: nil,
+		SupportVision:  true,
+		ImageCost:      nil,
 	},
 	"o1": {
 		Key:            "o1",
@@ -273,12 +203,8 @@ var AllModels = map[string]ModelInfo{
 		Type:           ModelTypeText,
 		PromptCost:     15.0,
 		CompletionCost: 60.0,
-		VisionCost: VisionCost{
-			Fixed: 15,
-			Base:  75,
-			Tile:  255,
-		},
-		ImageCost: nil,
+		SupportVision:  true,
+		ImageCost:      nil,
 	},
 	"o1-2024-12-17": {
 		Key:            "o1-2024-12-17",
@@ -286,12 +212,8 @@ var AllModels = map[string]ModelInfo{
 		Type:           ModelTypeText,
 		PromptCost:     15.0,
 		CompletionCost: 60.0,
-		VisionCost: VisionCost{
-			Fixed: 15,
-			Base:  75,
-			Tile:  255,
-		},
-		ImageCost: nil,
+		SupportVision:  true,
+		ImageCost:      nil,
 	},
 	"o1-preview": {
 		Key:            "o1-preview",
@@ -299,12 +221,8 @@ var AllModels = map[string]ModelInfo{
 		Type:           ModelTypeText,
 		PromptCost:     15.0,
 		CompletionCost: 60.0,
-		VisionCost: VisionCost{
-			Fixed: 15,
-			Base:  75,
-			Tile:  255,
-		},
-		ImageCost: nil,
+		SupportVision:  true,
+		ImageCost:      nil,
 	},
 	"o1-preview-2024-09-12": {
 		Key:            "o1-preview-2024-09-12",
@@ -312,12 +230,8 @@ var AllModels = map[string]ModelInfo{
 		Type:           ModelTypeText,
 		PromptCost:     15.0,
 		CompletionCost: 60.0,
-		VisionCost: VisionCost{
-			Fixed: 15,
-			Base:  75,
-			Tile:  255,
-		},
-		ImageCost: nil,
+		SupportVision:  true,
+		ImageCost:      nil,
 	},
 	"o3-mini": {
 		Key:            "o3-mini",
@@ -341,12 +255,8 @@ var AllModels = map[string]ModelInfo{
 		Type:           ModelTypeText,
 		PromptCost:     5.0,
 		CompletionCost: 15.0,
-		VisionCost: VisionCost{
-			Fixed: 2.5,
-			Base:  85,
-			Tile:  255,
-		},
-		ImageCost: nil,
+		SupportVision:  true,
+		ImageCost:      nil,
 	},
 	"gpt-4-turbo": {
 		Key:            "gpt-4-turbo",
@@ -354,12 +264,8 @@ var AllModels = map[string]ModelInfo{
 		Type:           ModelTypeText,
 		PromptCost:     10.0,
 		CompletionCost: 30.0,
-		VisionCost: VisionCost{
-			Fixed: 10,
-			Base:  85,
-			Tile:  255,
-		},
-		ImageCost: nil,
+		SupportVision:  true,
+		ImageCost:      nil,
 	},
 	"gpt-4-turbo-2024-04-09": {
 		Key:            "gpt-4-turbo-2024-04-09",
@@ -367,12 +273,8 @@ var AllModels = map[string]ModelInfo{
 		Type:           ModelTypeText,
 		PromptCost:     10.0,
 		CompletionCost: 30.0,
-		VisionCost: VisionCost{
-			Fixed: 10,
-			Base:  85,
-			Tile:  255,
-		},
-		ImageCost: nil,
+		SupportVision:  true,
+		ImageCost:      nil,
 	},
 	"gpt-4-0125-preview": {
 		Key:            "gpt-4-0125-preview",
@@ -396,12 +298,8 @@ var AllModels = map[string]ModelInfo{
 		Type:           ModelTypeText,
 		PromptCost:     10.0,
 		CompletionCost: 30.0,
-		VisionCost: VisionCost{
-			Fixed: 10,
-			Base:  85,
-			Tile:  255,
-		},
-		ImageCost: nil,
+		SupportVision:  true,
+		ImageCost:      nil,
 	},
 	"gpt-4": {
 		Key:            "gpt-4",
