@@ -39,6 +39,84 @@ type SearchCost struct {
 }
 
 var AllModels = map[string]ModelInfo{
+	"gpt-4.1": {
+		Key:            "gpt-4.1",
+		Manufacturer:   "OpenAI",
+		Type:           ModelTypeText,
+		PromptCost:     2.00,
+		CompletionCost: 8.00,
+		VisionCost: VisionCost{
+			Fixed: 75,
+			Base:  85,
+			Tile:  170,
+		},
+		ImageCost: nil,
+	},
+	"gpt-4.1-2025-04-14": {
+		Key:            "gpt-4.1-2025-04-14",
+		Manufacturer:   "OpenAI",
+		Type:           ModelTypeText,
+		PromptCost:     2.00,
+		CompletionCost: 8.00,
+		VisionCost: VisionCost{
+			Fixed: 75,
+			Base:  85,
+			Tile:  170,
+		},
+		ImageCost: nil,
+	},
+	"gpt-4.1-mini": {
+		Key:            "gpt-4.1-mini",
+		Manufacturer:   "OpenAI",
+		Type:           ModelTypeText,
+		PromptCost:     0.40,
+		CompletionCost: 1.60,
+		VisionCost: VisionCost{
+			Fixed: 75,
+			Base:  85,
+			Tile:  170,
+		},
+		ImageCost: nil,
+	},
+	"gpt-4.1-mini-2025-04-14": {
+		Key:            "gpt-4.1-mini-2025-04-14",
+		Manufacturer:   "OpenAI",
+		Type:           ModelTypeText,
+		PromptCost:     0.40,
+		CompletionCost: 1.60,
+		VisionCost: VisionCost{
+			Fixed: 75,
+			Base:  85,
+			Tile:  170,
+		},
+		ImageCost: nil,
+	},
+	"gpt-4.1-nano": {
+		Key:            "gpt-4.1-nano",
+		Manufacturer:   "OpenAI",
+		Type:           ModelTypeText,
+		PromptCost:     0.10,
+		CompletionCost: 0.40,
+		VisionCost: VisionCost{
+			Fixed: 75,
+			Base:  85,
+			Tile:  170,
+		},
+		ImageCost: nil,
+	},
+	"gpt-4.1-nano-2025-04-14": {
+		Key:            "gpt-4.1-nano-2025-04-14",
+		Manufacturer:   "OpenAI",
+		Type:           ModelTypeText,
+		PromptCost:     0.10,
+		CompletionCost: 0.40,
+		VisionCost: VisionCost{
+			Fixed: 75,
+			Base:  85,
+			Tile:  170,
+		},
+		ImageCost: nil,
+	},
 	"gpt-4.5-preview": {
 		Key:            "gpt-4.5-preview",
 		Manufacturer:   "OpenAI",
@@ -51,7 +129,8 @@ var AllModels = map[string]ModelInfo{
 			Tile:  170,
 		},
 		ImageCost: nil,
-	}, "gpt-4.5-preview-2025-02-27": {
+	},
+	"gpt-4.5-preview-2025-02-27": {
 		Key:            "gpt-4.5-preview-2025-02-27",
 		Manufacturer:   "OpenAI",
 		Type:           ModelTypeText,
