@@ -15,6 +15,5 @@ guild:
     image: dall-e-2
   reply: 3
   maxcompletiontokens: 1000
-  defaultTemperature: 0.2
 user_blacklist:
 - "0000000000000000000"
