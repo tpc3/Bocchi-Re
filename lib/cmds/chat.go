@@ -71,7 +71,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 
 	// Enable social filter
 	if filter {
-		request.Model = openai.GPT3Dot5Turbo
+		request.Model = "gpt-4o-mini"
 		if repMsg != nil && repMsg.Content != "" && !repMsg.Author.Bot {
 			request.Messages = []openai.ChatCompletionMessage{
 				{
