@@ -69,7 +69,6 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 		}
 	}
 
-	var visionToken int
 	// Enable social filter
 	if filter {
 		request.Model = openai.GPT3Dot5Turbo
@@ -92,7 +91,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 				},
 			}
 		}
-		runApi(msgInfo, request, content, filter, start, 0)
+		runApi(msgInfo, request, content, filter, start)
 		return
 	}
 
@@ -119,8 +118,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 				repnum = guild.Reply
 			}
 
-			var repVisionToken int
-			request, repVisionToken, err = goBackMessage(request, msgInfo, guild, repMsg, repnum, truesys)
+			request, err = goBackMessage(request, msgInfo, guild, repMsg, repnum, truesys)
 			if err != nil {
 				return
 			}
@@ -164,7 +162,6 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 				if err != nil {
 					return
 				}
-				visionToken = visionToken + repVisionToken
 
 				messages := []openai.ChatCompletionMessage{
 					{
@@ -197,7 +194,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 			}
 		}
 
-		runApi(msgInfo, request, content, filter, start, visionToken)
+		runApi(msgInfo, request, content, filter, start)
 		return
 	} else {
 		// No Reply
@@ -262,7 +259,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 			}
 			request.Messages = append(request.Messages, messages...)
 
-			runApi(msgInfo, request, content, filter, start, visionToken)
+			runApi(msgInfo, request, content, filter, start)
 			return
 
 		}
@@ -278,16 +275,13 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 		}
 		request.Messages = append(request.Messages, messages...)
 
-		runApi(msgInfo, request, content, filter, start, 0)
+		runApi(msgInfo, request, content, filter, start)
 		return
 	}
 }
 
-func goBackMessage(request openai.ChatCompletionRequest, msgInfo *embed.MsgInfo, guild config.Guild, repMsg *discordgo.Message, repnum int, truesys bool) (openai.ChatCompletionRequest, int, error) {
-	var (
-		visionToken int
-		err         error
-	)
+func goBackMessage(request openai.ChatCompletionRequest, msgInfo *embed.MsgInfo, guild config.Guild, repMsg *discordgo.Message, repnum int, truesys bool) (openai.ChatCompletionRequest, error) {
+	var err error
 
 	for i := 0; i < repnum; i++ {
 		if repMsg.Author.ID != msgInfo.Session.State.User.ID {
@@ -349,13 +343,13 @@ func goBackMessage(request openai.ChatCompletionRequest, msgInfo *embed.MsgInfo,
 			if !judgeVisionModel(modelstr) {
 				embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.NoVisionModel)
 				err = errors.New("no vision model")
-				return request, visionToken, err
+				return request, err
 			}
 
 			// Verify imageURL
 			err = verifyImage(msgInfo, imageurl, detail, modelstr)
 			if err != nil {
-				return request, visionToken, err
+				return request, err
 			}
 
 			message := []openai.ChatCompletionMessage{
@@ -404,7 +398,7 @@ func goBackMessage(request openai.ChatCompletionRequest, msgInfo *embed.MsgInfo,
 	}
 
 	reverse(request.Messages)
-	return request, visionToken, nil
+	return request, nil
 }
 
 // https://stackoverflow.com/questions/28058278/how-do-i-reverse-a-slice-in-go
@@ -512,7 +506,7 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 	return content, modelstr, systemstr, imageurl, detail, reasoning_effort, temperature, top_p, frequency_penalty, repnum, max_completion_tokens, seed, filter, err
 }
 
-func runApi(msgInfo *embed.MsgInfo, request openai.ChatCompletionRequest, content string, filter bool, start time.Time, visionToken int) {
+func runApi(msgInfo *embed.MsgInfo, request openai.ChatCompletionRequest, content string, filter bool, start time.Time) {
 
 	// Verify reasoning effort
 	re := regexp.MustCompile(`^o\d.*`)
