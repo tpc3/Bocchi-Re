@@ -185,11 +185,16 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 			} else {
 				request.Messages = append(request.Messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleUser, Content: content})
 			}
-		} else {
+		} else if !repMsg.Author.Bot {
+			var embedContent string
+
+			if repMsg.Embeds[0] != nil {
+				embedContent = repMsg.Embeds[0].Description
+			}
 			request.Messages = []openai.ChatCompletionMessage{
 				{
 					Role:    openai.ChatMessageRoleUser,
-					Content: repMsg.Content + "\n\n" + content,
+					Content: repMsg.Content + embedContent + "\n\n" + content,
 				},
 			}
 		}
