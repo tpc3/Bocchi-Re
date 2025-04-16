@@ -126,8 +126,13 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 			}
 
 			// Setting parameter
-			if top_p != 0.0 {
-				request.TopP = float32(top_p)
+			if !search {
+				if temperature != 0.0 {
+					request.Temperature = float32(temperature)
+				}
+				if top_p != 0.0 {
+					request.TopP = float32(top_p)
+				}
 			}
 			if seed != 0 {
 				request.Seed = &seed
