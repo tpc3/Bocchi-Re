@@ -158,7 +158,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 				}
 
 				// Verify imageURL
-				err = verifyImage(msgInfo, imageurl, detail, modelstr)
+				err = verifyImage(msgInfo, imageurl, detail)
 				if err != nil {
 					return
 				}
@@ -231,7 +231,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 			}
 
 			// Verify imageURL
-			err = verifyImage(msgInfo, imageurl, detail, modelstr)
+			err = verifyImage(msgInfo, imageurl, detail)
 			if err != nil {
 				return
 			}
@@ -347,7 +347,7 @@ func goBackMessage(request openai.ChatCompletionRequest, msgInfo *embed.MsgInfo,
 			}
 
 			// Verify imageURL
-			err = verifyImage(msgInfo, imageurl, detail, modelstr)
+			err = verifyImage(msgInfo, imageurl, detail)
 			if err != nil {
 				return request, err
 			}
@@ -606,7 +606,7 @@ func judgeVisionModel(modelstr string) bool {
 	return modelinfo.SupportVision
 }
 
-func verifyImage(msgInfo *embed.MsgInfo, imageurl string, detail string, modelstr string) error {
+func verifyImage(msgInfo *embed.MsgInfo, imageurl string, detail string) error {
 	errImg := errors.New("error has occurred")
 	// Verify URL
 	re := regexp.MustCompile(`https?://[\w!?/+\-_~;.,*&@#$%()'[\]]+`)
