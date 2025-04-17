@@ -76,7 +76,7 @@ func loadLang() {
 			NoSupportedParameterText:  "このパラメータは`o_series`のみ使用できます。",
 			NoSupportedParameterImage: "このパラメータは`dell-e-3`のみ使用できます。",
 			DataSaveError:             "データの保存に失敗しました。",
-			NoResponse:                "返答がありません。おそらくトークン不足なので、`maxtokens`を増やしてもう一度お試しください。",
+			NoResponse:                "返答がありません。おそらくトークン不足なので、`max_completion_tokens`を増やしてもう一度お試しください。",
 		},
 		Reply: reply{
 			ExexTime:   "実行時間",
@@ -115,7 +115,7 @@ func loadLang() {
 			NoSupportedParameterText:  "This parameter can use `o_series` only.",
 			NoSupportedParameterImage: "This parameter can use `dell-e-3` only.",
 			DataSaveError:             "Data save error.",
-			NoResponse:                "No response. Maybe you need to increase `maxtokens`.",
+			NoResponse:                "No response. Maybe you need to increase `max_completion_tokens`.",
 		},
 		Reply: reply{
 			ExexTime:   "Execution time: ",
