@@ -458,10 +458,22 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 				}
 				i += 1
 			case "-t":
-				temperature, err = strconv.ParseFloat(str[i+1], 64)
+				tempVal, parseErr := strconv.ParseFloat(str[i+1], 64)
+				if parseErr != nil || tempVal < 0 || tempVal > 2 {
+					temperature = -1.0
+				} else {
+					temperature = tempVal
+				}
+				err = parseErr
 				i += 1
 			case "-p":
-				top_p, err = strconv.ParseFloat(str[i+1], 64)
+				topVal, parseErr := strconv.ParseFloat(str[i+1], 64)
+				if parseErr != nil || topVal < 0 || topVal > 1 {
+					top_p = -1.0
+				} else {
+					top_p = topVal
+				}
+				err = parseErr
 				i += 1
 			case "-l":
 				repnum, err = strconv.Atoi(str[i+1])
@@ -473,11 +485,19 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 				seed, _ = strconv.Atoi(str[i+1])
 				i += 1
 			case "--reasoning_effort":
-				reasoning_effort = str[i+1]
-				i += 1
+				if str[i+1] == "low" || str[i+1] == "medium" || str[i+1] == "high" {
+					reasoning_effort = str[i+1]
+					i += 1
+				} else {
+					reasoning_effort = "miss"
+				}
 			case "--frequency_penalty":
-				freqPenalty, _ := strconv.ParseFloat(str[i+1], 64)
-				frequency_penalty = float32(freqPenalty)
+				freqPenalty, parseErr := strconv.ParseFloat(str[i+1], 64)
+				if parseErr != nil || freqPenalty < -2.0 || freqPenalty > 2.0 {
+					frequency_penalty = -9999.0
+				} else {
+					frequency_penalty = float32(freqPenalty)
+				}
 				i += 1
 			default:
 				content += str[i] + " "
@@ -518,6 +538,12 @@ func runApi(msgInfo *embed.MsgInfo, request openai.ChatCompletionRequest, conten
 	if request.ReasoningEffort != "" && !re.Match([]byte(request.Model)) {
 		embed.WarningReply(msgInfo, config.Lang[msgInfo.Lang].Warning.NoSupportedParameterText)
 		request.ReasoningEffort = ""
+	}
+
+	// Verify parameter
+	if request.ReasoningEffort == "miss" && request.Temperature == -1.0 && request.TopP == -1.0 && request.FrequencyPenalty == -9999.0 {
+		embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.SubCmd)
+		return
 	}
 
 	// Run OpenAI API
