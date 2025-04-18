@@ -188,7 +188,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 		} else if !repMsg.Author.Bot {
 			var embedContent string
 
-			if repMsg.Embeds[0] != nil {
+			if len(repMsg.Embeds) > 0 {
 				embedContent = repMsg.Embeds[0].Description
 			}
 			request.Messages = []openai.ChatCompletionMessage{
