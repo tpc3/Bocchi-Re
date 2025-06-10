@@ -453,6 +453,24 @@ var AllModels = map[string]ModelInfo{
 		CompletionCost: 4.0,
 		ImageCost:      nil,
 	},
+	"gemini-2.5-flash-preview-04-17": {
+		Key:            "gemini-2.5-flash-preview-04-17",
+		Manufacturer:   "Google",
+		Type:           ModelTypeText,
+		PromptCost:     0.15,
+		CompletionCost: 0.60,
+		SupportVision:  true,
+		ImageCost:      nil,
+	},
+	"gemini-2.5-pro-exp-03-25": {
+		Key:            "gemini-2.5-pro-exp-03-25",
+		Manufacturer:   "Google",
+		Type:           ModelTypeText,
+		PromptCost:     1.25,
+		CompletionCost: 10.00,
+		SupportVision:  true,
+		ImageCost:      nil,
+	},
 	// DALL-E 2
 	"dall-e-2": {
 		Key:          "dall-e-2",
@@ -476,7 +494,18 @@ var AllModels = map[string]ModelInfo{
 			"hd-rectangle":       0.120,
 		},
 	},
-	// 追加予定の Claude, Gemini なども同様に記述可
-	// "claude-3-opus": {...}
-	// "gemini-1.5": {...}
+	"gpt-image-1": {
+		Key:          "gpt-image-1",
+		Manufacturer: "OpenAI",
+		Type:         ModelTypeImage,
+		PromptCost:   5.0,
+		ImageCost: map[string]float64{
+			"low-square":       0.011,
+			"low-rectangle":    0.026,
+			"medium-square":    0.042,
+			"medium-rectangle": 0.063,
+			"high-square":      0.167,
+			"high-rectangle":   0.250,
+		},
+	},
 }

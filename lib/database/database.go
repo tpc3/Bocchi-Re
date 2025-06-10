@@ -15,6 +15,7 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/robfig/cron/v3"
+	"github.com/sashabaranov/go-openai"
 	"github.com/tpc3/Bocchi-Re/lib/config"
 )
 
@@ -210,6 +211,10 @@ func CalcCost(records []UsageRecord) float64 {
 			}
 
 		} else if modelInfo.Type == config.ModelTypeImage {
+			if modelInfo.Key == openai.CreateImageModelGptImage1 && usageType == "gpt-image-text" {
+				totalUSD += (usageCount / 1000000.0) * modelInfo.PromptCost
+			}
+
 			//Get the prefix and determine the model variant
 			variant := splitImageModelInfo(usageType)
 			variant_suffix := variant[len(variant)-1]
@@ -226,23 +231,51 @@ func CalcCost(records []UsageRecord) float64 {
 				}
 			}
 
-			// dall-e-3
+			// dall-e-3 and gpt-image-1
 			if variant_suffix == "square" || variant_suffix == "rectangle" {
-				// For dall-e-3, since "square" etc. remain, determine if "hd" is included.
-				if variant[3] == "standard" {
+				switch variant[3] {
+				// dall-e-3
+				case "standard":
 					switch variant_suffix {
 					case "square":
 						totalUSD += modelInfo.ImageCost["standard-square"] * usageCount
 					case "rectangle":
 						totalUSD += modelInfo.ImageCost["standard-rectangle"] * usageCount
 					}
-				} else if variant[3] == "hd" {
+				case "hd":
 					switch variant_suffix {
 					case "square":
 						totalUSD += modelInfo.ImageCost["hd-square"] * usageCount
 					case "rectangle":
 						totalUSD += modelInfo.ImageCost["hd-rectangle"] * usageCount
 					}
+				// gpt-image-1
+				case "low":
+					switch variant_suffix {
+					case "square":
+						totalUSD += modelInfo.ImageCost["low-square"] * usageCount
+					case "rectangle":
+						totalUSD += modelInfo.ImageCost["low-rectangle"] * usageCount
+					}
+				case "medium":
+					switch variant_suffix {
+					case "square":
+						totalUSD += modelInfo.ImageCost["medium-square"] * usageCount
+					case "rectangle":
+						totalUSD += modelInfo.ImageCost["medium-rectangle"] * usageCount
+					}
+				case "high":
+					switch variant_suffix {
+					case "square":
+						totalUSD += modelInfo.ImageCost["high-square"] * usageCount
+					case "rectangle":
+						totalUSD += modelInfo.ImageCost["high-rectangle"] * usageCount
+					}
+				}
+
+				// gpt-image-1 tokens
+				if usageType == "gpt-image-text" {
+					totalUSD += (usageCount / 1000000.0) * modelInfo.PromptCost
 				}
 			}
 		}

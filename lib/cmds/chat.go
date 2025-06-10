@@ -28,9 +28,8 @@ import (
 
 const Chat = "chat"
 
-var search bool
-
 func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
+	var search bool
 	msgInfo.Session.MessageReactionAdd(msgInfo.OrgMsg.ChannelID, msgInfo.OrgMsg.ID, "🤔")
 
 	if *msg == "" {
@@ -41,7 +40,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 	start := time.Now()
 	request := openai.ChatCompletionRequest{}
 
-	content, modelstr, systemstr, imageurl, detail, reasoning_effort, temperature, top_p, frequency_penalty, repnum, max_completion_tokens, seed, filter, err := splitChatMsg(msg, msgInfo, guild, &request)
+	content, modelstr, systemstr, imageurl, detail, reasoning_effort, temperature, top_p, frequency_penalty, repnum, max_completion_tokens, seed, filter, err := splitChatMsg(msg, msgInfo, guild, &request, &search)
 
 	if err != nil {
 		if err.Error() == "no model" {
@@ -91,7 +90,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 				},
 			}
 		}
-		runApi(msgInfo, request, content, filter, start)
+		runApi(msgInfo, request, content, filter, search, start)
 		return
 	}
 
@@ -118,7 +117,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 				repnum = guild.Reply
 			}
 
-			request, err = goBackMessage(request, msgInfo, guild, repMsg, repnum, truesys)
+			request, err = goBackMessage(request, msgInfo, guild, repMsg, repnum, truesys, search)
 			if err != nil {
 				return
 			}
@@ -199,7 +198,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 			}
 		}
 
-		runApi(msgInfo, request, content, filter, start)
+		runApi(msgInfo, request, content, filter, search, start)
 		return
 	} else {
 		// No Reply
@@ -264,7 +263,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 			}
 			request.Messages = append(request.Messages, messages...)
 
-			runApi(msgInfo, request, content, filter, start)
+			runApi(msgInfo, request, content, filter, search, start)
 			return
 
 		}
@@ -280,12 +279,12 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 		}
 		request.Messages = append(request.Messages, messages...)
 
-		runApi(msgInfo, request, content, filter, start)
+		runApi(msgInfo, request, content, filter, search, start)
 		return
 	}
 }
 
-func goBackMessage(request openai.ChatCompletionRequest, msgInfo *embed.MsgInfo, guild config.Guild, repMsg *discordgo.Message, repnum int, truesys bool) (openai.ChatCompletionRequest, error) {
+func goBackMessage(request openai.ChatCompletionRequest, msgInfo *embed.MsgInfo, guild config.Guild, repMsg *discordgo.Message, repnum int, truesys bool, search bool) (openai.ChatCompletionRequest, error) {
 	var err error
 
 	for i := 0; i < repnum; i++ {
@@ -317,7 +316,7 @@ func goBackMessage(request openai.ChatCompletionRequest, msgInfo *embed.MsgInfo,
 			break
 		}
 		_, _, trimmed := utils.TrimPrefix(repMsg.Content, guild.Prefix, msgInfo.Session.State.User.Mention())
-		content, modelstr, systemstr, imageurl, detail, reasoning_effort, temperature, top_p, frequency_penalty, _, max_completion_tokens, seed, _, _ := splitChatMsg(&trimmed, msgInfo, guild, &request)
+		content, modelstr, systemstr, imageurl, detail, reasoning_effort, temperature, top_p, frequency_penalty, _, max_completion_tokens, seed, _, _ := splitChatMsg(&trimmed, msgInfo, guild, &request, &search)
 
 		// Setting parameter
 		if !search {
@@ -415,7 +414,7 @@ func reverse(s interface{}) {
 	}
 }
 
-func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, request *openai.ChatCompletionRequest) (string, string, string, string, string, string, float64, float64, float32, int, int, int, bool, error) {
+func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, request *openai.ChatCompletionRequest, search *bool) (string, string, string, string, string, string, float64, float64, float32, int, int, int, bool, error) {
 	var (
 		content, modelstr, systemstr, imageurl, detail, reasoning_effort string
 		temperature, top_p                                               float64
@@ -525,18 +524,18 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 		request.Model = modelstr
 	}
 	if modelstr == "gpt-4o-search-preview" || modelstr == "gpt-4o-mini-search-preview" {
-		search = true
+		*search = true
 	}
 
 	return content, modelstr, systemstr, imageurl, detail, reasoning_effort, temperature, top_p, frequency_penalty, repnum, max_completion_tokens, seed, filter, err
 }
 
-func runApi(msgInfo *embed.MsgInfo, request openai.ChatCompletionRequest, content string, filter bool, start time.Time) {
+func runApi(msgInfo *embed.MsgInfo, request openai.ChatCompletionRequest, content string, filter bool, search bool, start time.Time) {
 
 	// Verify reasoning effort
 	re := regexp.MustCompile(`^o\d.*`)
 	if request.ReasoningEffort != "" && !re.Match([]byte(request.Model)) {
-		embed.WarningReply(msgInfo, config.Lang[msgInfo.Lang].Warning.NoSupportedParameterText)
+		embed.WarningReply(msgInfo, config.Lang[msgInfo.Lang].Warning.NoSupportedParameter)
 		request.ReasoningEffort = ""
 	}
 

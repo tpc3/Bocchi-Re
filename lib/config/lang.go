@@ -25,11 +25,10 @@ type errorstr struct {
 }
 
 type warning struct {
-	Title                     string
-	NoSupportedParameterText  string
-	NoSupportedParameterImage string
-	DataSaveError             string
-	NoResponse                string
+	Title                string
+	NoSupportedParameter string
+	DataSaveError        string
+	NoResponse           string
 }
 
 type reply struct {
@@ -72,11 +71,10 @@ func loadLang() {
 			NoVisionModel:        "このモデルは画像を読み込めません。",
 		},
 		Warning: warning{
-			Title:                     "注意",
-			NoSupportedParameterText:  "このパラメータは`o_series`のみ使用できます。",
-			NoSupportedParameterImage: "このパラメータは`dell-e-3`のみ使用できます。",
-			DataSaveError:             "データの保存に失敗しました。",
-			NoResponse:                "返答がありません。おそらくトークン不足なので、`max_completion_tokens`を増やしてもう一度お試しください。",
+			Title:                "注意",
+			NoSupportedParameter: "指定されたパラメータは、このモデルでは利用できません。",
+			DataSaveError:        "データの保存に失敗しました。",
+			NoResponse:           "返答がありません。おそらくトークン不足なので、`max_completion_tokens`を増やしてもう一度お試しください。",
 		},
 		Reply: reply{
 			ExexTime:   "実行時間",
@@ -111,11 +109,10 @@ func loadLang() {
 			NoVisionModel:        "This model can't load image.",
 		},
 		Warning: warning{
-			Title:                     "Warning!",
-			NoSupportedParameterText:  "This parameter can use `o_series` only.",
-			NoSupportedParameterImage: "This parameter can use `dell-e-3` only.",
-			DataSaveError:             "Data save error.",
-			NoResponse:                "No response. Maybe you need to increase `max_completion_tokens`.",
+			Title:                "Warning!",
+			NoSupportedParameter: "The specified parameter cannot be used with this model.",
+			DataSaveError:        "Data save error.",
+			NoResponse:           "No response. Maybe you need to increase `max_completion_tokens`.",
 		},
 		Reply: reply{
 			ExexTime:   "Execution time: ",

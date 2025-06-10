@@ -18,6 +18,7 @@ const (
 	ColorImage     = 0x02d1e0
 	ColorPink      = 0xf50057
 	ColorSystem    = 0xffc107
+	ColorGemini    = 0x4796E3
 )
 
 type MsgInfo struct {

@@ -24,6 +24,9 @@ type Config struct {
 	Openai struct {
 		Token string
 	}
+	Google struct {
+		Token string
+	}
 	Guild         Guild
 	UserBlacklist []string `yaml:"user_blacklist"`
 }
