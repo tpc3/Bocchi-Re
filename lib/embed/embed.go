@@ -14,6 +14,7 @@ var UnknownErrorNum int
 const (
 	ColorGPT3      = 0x10a37f
 	ColorGPT4      = 0xab68ff
+	ColorGPT5      = 0xff9dc7
 	Color_o_series = 0xff8082
 	ColorImage     = 0x02d1e0
 	ColorPink      = 0xf50057

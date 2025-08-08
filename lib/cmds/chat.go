@@ -484,7 +484,7 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 				seed, _ = strconv.Atoi(str[i+1])
 				i += 1
 			case "--reasoning_effort":
-				if str[i+1] == "low" || str[i+1] == "medium" || str[i+1] == "high" {
+				if str[i+1] == "minimal" || str[i+1] == "low" || str[i+1] == "medium" || str[i+1] == "high" {
 					reasoning_effort = str[i+1]
 					i += 1
 				} else {
@@ -533,7 +533,7 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 func runApi(msgInfo *embed.MsgInfo, request openai.ChatCompletionRequest, content string, filter bool, search bool, start time.Time) {
 
 	// Verify reasoning effort
-	re := regexp.MustCompile(`^o\d.*`)
+	re := regexp.MustCompile(`(^o\d.*|^gpt-5.*)`)
 	if request.ReasoningEffort != "" && !re.Match([]byte(request.Model)) {
 		embed.WarningReply(msgInfo, config.Lang[msgInfo.Lang].Warning.NoSupportedParameter)
 		request.ReasoningEffort = ""
@@ -601,6 +601,8 @@ func runApi(msgInfo *embed.MsgInfo, request openai.ChatCompletionRequest, conten
 		msgEmbed.Color = embed.ColorGPT3
 	} else if strings.Contains(resp.Model, "gpt-4") {
 		msgEmbed.Color = embed.ColorGPT4
+	} else if strings.Contains(resp.Model, "gpt-5") {
+		msgEmbed.Color = embed.ColorGPT5
 	} else if re.MatchString(resp.Model) {
 		msgEmbed.Color = embed.Color_o_series
 	}
