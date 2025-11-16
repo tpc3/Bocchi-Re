@@ -44,7 +44,6 @@ type reply struct {
 type content struct {
 	Help   string
 	Filter string
-	Config string
 }
 
 var (
@@ -88,7 +87,6 @@ func loadLang() {
 		Content: content{
 			Help:   "Botの使い方に関しては、Wikiをご覧ください。",
 			Filter: "以上の文章をポジティブな言葉で言い換えてください。",
-			Config: "設定を変更しました。",
 		},
 	}
 	Lang["english"] = Strings{
@@ -126,7 +124,6 @@ func loadLang() {
 		Content: content{
 			Help:   "Usage is available on the wiki.",
 			Filter: "Please rephrase the above sentence in positives.",
-			Config: "Config was changed",
 		},
 	}
 }

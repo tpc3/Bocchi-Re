@@ -76,7 +76,6 @@ func ConfigCmd(msgInfo *embed.MsgInfo, guild config.Guild) {
 			return
 		}
 		msgInfo.Session.MessageReactionAdd(msgInfo.OrgMsg.ChannelID, msgInfo.OrgMsg.ID, "👍")
-		embed.MessageEmbed(msgInfo, Config, config.Lang[msgInfo.Lang].Content.Config)
 		return
 	default:
 		embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.SubCmd)
@@ -99,5 +98,4 @@ func ConfigCmd(msgInfo *embed.MsgInfo, guild config.Guild) {
 		return
 	}
 	msgInfo.Session.MessageReactionAdd(msgInfo.OrgMsg.ChannelID, msgInfo.OrgMsg.ID, "👍")
-	embed.MessageEmbed(msgInfo, Config, config.Lang[guild.Lang].Content.Config)
 }
