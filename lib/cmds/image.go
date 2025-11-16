@@ -204,9 +204,9 @@ func ImageCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 
 	// Setting embed footer
 	dulation := strconv.FormatFloat(time.Since(start).Seconds(), 'f', 2, 64)
-	exectimetext := config.Lang[msgInfo.Lang].Reply.ExexTime
-	second := config.Lang[msgInfo.Lang].Reply.Second
-	generate := config.Lang[msgInfo.Lang].Reply.Generate + request.Model
+	exectimetext := config.Lang[msgInfo.Lang].Content.ExexTime
+	second := config.Lang[msgInfo.Lang].Content.Second
+	generate := config.Lang[msgInfo.Lang].Content.Generate + request.Model
 	msgEmbed.Footer = &discordgo.MessageEmbedFooter{
 		Text: exectimetext + dulation + second + " · " + generate,
 	}

@@ -71,6 +71,8 @@ func MessageCreate(session *discordgo.Session, orgMsg *discordgo.MessageCreate) 
 			cmds.CostCmd(&msgInfo)
 		case cmds.Models:
 			cmds.ModelsCmd(&msgInfo)
+		case cmds.Summary, "今北産業":
+			cmds.SummaryCmd(&msgInfo, &param, *guild)
 		}
 
 		if config.CurrentConfig.Debug {

@@ -90,7 +90,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 				},
 			}
 		}
-		runApi(msgInfo, request, content, filter, search, start)
+		RunApi(msgInfo, request, content, filter, search, start)
 		return
 	}
 
@@ -107,7 +107,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 
 	// Exist reply
 	if repMsg != nil {
-		if repMsg.Author.ID == msgInfo.Session.State.User.ID && (repMsg.Embeds[0].Color == embed.ColorGPT3 || repMsg.Embeds[0].Color == embed.ColorGPT4 || repMsg.Embeds[0].Color == embed.Color_o_series || repMsg.Embeds[0].Color == embed.ColorGPT5) {
+		if repMsg.Author.ID == msgInfo.Session.State.User.ID && (repMsg.Embeds[0].Color == embed.ColorGPT3 || repMsg.Embeds[0].Color == embed.ColorGPT4 || repMsg.Embeds[0].Color == embed.Color_o_series) {
 			var truesys bool
 			if systemstr != "" {
 				truesys = true
@@ -198,7 +198,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 			}
 		}
 
-		runApi(msgInfo, request, content, filter, search, start)
+		RunApi(msgInfo, request, content, filter, search, start)
 		return
 	} else {
 		// No Reply
@@ -263,7 +263,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 			}
 			request.Messages = append(request.Messages, messages...)
 
-			runApi(msgInfo, request, content, filter, search, start)
+			RunApi(msgInfo, request, content, filter, search, start)
 			return
 
 		}
@@ -279,7 +279,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 		}
 		request.Messages = append(request.Messages, messages...)
 
-		runApi(msgInfo, request, content, filter, search, start)
+		RunApi(msgInfo, request, content, filter, search, start)
 		return
 	}
 }
@@ -290,7 +290,7 @@ func goBackMessage(request openai.ChatCompletionRequest, msgInfo *embed.MsgInfo,
 	for i := 0; i < repnum; i++ {
 		if repMsg.Author.ID != msgInfo.Session.State.User.ID {
 			break
-		} else if repMsg.Embeds[0].Color != embed.ColorGPT3 && repMsg.Embeds[0].Color != embed.ColorGPT4 && repMsg.Embeds[0].Color != embed.Color_o_series && repMsg.Embeds[0].Color != embed.ColorGPT5 {
+		} else if repMsg.Embeds[0].Color != embed.ColorGPT3 && repMsg.Embeds[0].Color != embed.ColorGPT4 && repMsg.Embeds[0].Color != embed.Color_o_series {
 			break
 		}
 		request.Messages = append(request.Messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleAssistant, Content: repMsg.Embeds[0].Description})
@@ -530,7 +530,7 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 	return content, modelstr, systemstr, imageurl, detail, reasoning_effort, temperature, top_p, frequency_penalty, repnum, max_completion_tokens, seed, filter, err
 }
 
-func runApi(msgInfo *embed.MsgInfo, request openai.ChatCompletionRequest, content string, filter bool, search bool, start time.Time) {
+func RunApi(msgInfo *embed.MsgInfo, request openai.ChatCompletionRequest, content string, filter bool, search bool, start time.Time) {
 
 	// Verify reasoning effort
 	re := regexp.MustCompile(`(^o\d.*|^gpt-5.*)`)
@@ -622,8 +622,8 @@ func runApi(msgInfo *embed.MsgInfo, request openai.ChatCompletionRequest, conten
 
 	// Setting mebed footer
 	dulation := strconv.FormatFloat(time.Since(start).Seconds(), 'f', 2, 64)
-	exectimetext := config.Lang[msgInfo.Lang].Reply.ExexTime
-	second := config.Lang[msgInfo.Lang].Reply.Second
+	exectimetext := config.Lang[msgInfo.Lang].Content.ExexTime
+	second := config.Lang[msgInfo.Lang].Content.Second
 	msgEmbed.Footer = &discordgo.MessageEmbedFooter{
 		Text: exectimetext + dulation + second + "・" + resp.Model,
 	}

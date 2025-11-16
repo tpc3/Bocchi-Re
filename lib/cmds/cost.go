@@ -27,8 +27,8 @@ func CostCmd(msgInfo *embed.MsgInfo) {
 	}
 
 	msgEmbed := embed.NewEmbed(msgInfo)
-	msgEmbed.Title = config.Lang[msgInfo.Lang].Reply.Cost
-	msgEmbed.Description = config.Lang[msgInfo.Lang].Reply.Cost + strconv.FormatFloat(cost, 'f', 2, 64)
+	msgEmbed.Title = config.Lang[msgInfo.Lang].Content.Cost
+	msgEmbed.Description = config.Lang[msgInfo.Lang].Content.Cost + strconv.FormatFloat(cost, 'f', 2, 64)
 	msgInfo.Session.MessageReactionRemove(msgInfo.OrgMsg.ChannelID, msgInfo.OrgMsg.ID, "🤔", msgInfo.Session.State.User.ID)
 	reply := &discordgo.MessageSend{}
 	embed.ReplyEmbed(reply, msgInfo, msgEmbed)

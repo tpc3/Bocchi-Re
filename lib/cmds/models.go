@@ -30,16 +30,16 @@ func ModelsCmd(msgInfo *embed.MsgInfo) {
 	sort.Strings(imagemodels)
 
 	msgEmbed := embed.NewEmbed(msgInfo)
-	msgEmbed.Title = config.Lang[msgInfo.Lang].Reply.Model
+	msgEmbed.Title = config.Lang[msgInfo.Lang].Content.Model
 
 	// Display text models
-	msgEmbed.Description = "## " + config.Lang[msgInfo.Lang].Reply.TextModel + "\n"
+	msgEmbed.Description = "## " + config.Lang[msgInfo.Lang].Content.TextModel + "\n"
 	for _, model := range textmodels {
 		msgEmbed.Description += "  - " + model + "\n"
 	}
 
 	// Display image models
-	msgEmbed.Description += "\n## " + config.Lang[msgInfo.Lang].Reply.ImageModel + "\n"
+	msgEmbed.Description += "\n## " + config.Lang[msgInfo.Lang].Content.ImageModel + "\n"
 	for i, model := range imagemodels {
 		if i != len(imagemodels)-1 {
 			msgEmbed.Description += "  - " + model + "\n"
