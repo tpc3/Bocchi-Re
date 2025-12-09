@@ -201,18 +201,18 @@ func CalcCost(records []UsageRecord) float64 {
 		if modelInfo.Type == config.ModelTypeText {
 			// calculate the cost(based on 1M tokens)
 			switch usageType {
-			case "prompt_tokens":
-				totalUSD += (usageCount / 1000000.0) * modelInfo.PromptCost
-			case "completion_tokens":
-				totalUSD += (usageCount / 1000000.0) * modelInfo.CompletionCost
-			case "prompt_cache_tokens":
-				// Cache tokens are half the price of prompt tokens
-				totalUSD += (usageCount / 1000000.0) * (modelInfo.PromptCost / 2.0)
+			case "input_tokens":
+				totalUSD += (usageCount / 1000000.0) * modelInfo.InputCost
+			case "output_tokens":
+				totalUSD += (usageCount / 1000000.0) * modelInfo.OutputCost
+			case "input_cache_tokens":
+				// Cache tokens are half the price of input tokens
+				totalUSD += (usageCount / 1000000.0) * (modelInfo.InputCost / 2.0)
 			}
 
 		} else if modelInfo.Type == config.ModelTypeImage {
 			if modelInfo.Key == openai.CreateImageModelGptImage1 && usageType == "gpt-image-text" {
-				totalUSD += (usageCount / 1000000.0) * modelInfo.PromptCost
+				totalUSD += (usageCount / 1000000.0) * modelInfo.InputCost
 			}
 
 			//Get the prefix and determine the model variant
@@ -275,7 +275,7 @@ func CalcCost(records []UsageRecord) float64 {
 
 				// gpt-image-1 tokens
 				if usageType == "gpt-image-text" {
-					totalUSD += (usageCount / 1000000.0) * modelInfo.PromptCost
+					totalUSD += (usageCount / 1000000.0) * modelInfo.InputCost
 				}
 			}
 		}

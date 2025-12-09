@@ -100,7 +100,7 @@ func UnknownErrorEmbed(msgInfo *MsgInfo, err error) {
 	log.Print("Unknown error: ", err)
 	debug.PrintStack()
 	UnknownErrorNum++
-	msgEmbed := NewErrorEmbed(msgInfo, config.Lang[msgInfo.Lang].Error.Unkown)
+	msgEmbed := NewErrorEmbed(msgInfo, config.Lang[msgInfo.Lang].Error.Unknown)
 	reply := &discordgo.MessageSend{}
 	ReplyEmbed(reply, msgInfo, msgEmbed)
 }

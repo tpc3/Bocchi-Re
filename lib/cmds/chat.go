@@ -9,8 +9,8 @@ import (
 	_ "image/png"
 	"log"
 	"net/http"
-	"reflect"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -19,7 +19,11 @@ import (
 	_ "golang.org/x/image/webp"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/sashabaranov/go-openai"
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/option"
+	"github.com/openai/openai-go/v3/responses"
+	"github.com/openai/openai-go/v3/shared"
+
 	"github.com/tpc3/Bocchi-Re/lib/config"
 	"github.com/tpc3/Bocchi-Re/lib/database"
 	"github.com/tpc3/Bocchi-Re/lib/embed"
@@ -38,17 +42,19 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 	}
 
 	start := time.Now()
-	request := openai.ChatCompletionRequest{}
+	request := responses.ResponseNewParams{}
 
-	content, modelstr, systemstr, imageurl, detail, reasoning_effort, temperature, top_p, frequency_penalty, repnum, max_completion_tokens, seed, filter, err := splitChatMsg(msg, msgInfo, guild, &request, &search)
+	content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_completion_tokens, filter, err := splitChatMsg(msg, msgInfo, guild, &request, &search)
 
 	if err != nil {
-		if err.Error() == "no model" {
+		if err.Error() == "no model" || err.Error() == "invalid reasoning effort" {
 			return
 		} else if content == "" {
 			embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.SubCmd)
 			return
 		}
+		embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.Unknown)
+		return
 	}
 
 	// Get replied content
@@ -72,23 +78,20 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 	if filter {
 		request.Model = "gpt-4o-mini"
 		if repMsg != nil && repMsg.Content != "" && !repMsg.Author.Bot {
-			request.Messages = []openai.ChatCompletionMessage{
-				{
-					Role:    openai.ChatMessageRoleUser,
-					Content: repMsg.Content + "\n\n" + config.Lang[msgInfo.Lang].Content.Filter,
-				},
+			request.Input = responses.ResponseNewParamsInputUnion{
+				OfString: openai.String(repMsg.Content + "\n\n" + config.Lang[msgInfo.Lang].Content.Filter),
 			}
+
 		} else {
 			if content == "" {
 				embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.SubCmd)
 				return
 			}
-			request.Messages = []openai.ChatCompletionMessage{
-				{
-					Role:    openai.ChatMessageRoleUser,
-					Content: content + "\n\n" + config.Lang[msgInfo.Lang].Content.Filter,
-				},
+
+			request.Input = responses.ResponseNewParamsInputUnion{
+				OfString: openai.String(content + "\n\n" + config.Lang[msgInfo.Lang].Content.Filter),
 			}
+
 		}
 		RunApi(msgInfo, request, content, filter, search, start)
 		return
@@ -104,10 +107,14 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 		embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.NoImg)
 		return
 	}
+	if strings.Contains(strings.ReplaceAll(*msg, content, ""), "--search_context_size") || strings.Contains(strings.ReplaceAll(*msg, content, ""), "--user_location") && !search {
+		embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.Invalid)
+		return
+	}
 
 	// Exist reply
 	if repMsg != nil {
-		if repMsg.Author.ID == msgInfo.Session.State.User.ID && (repMsg.Embeds[0].Color == embed.ColorGPT3 || repMsg.Embeds[0].Color == embed.ColorGPT4 || repMsg.Embeds[0].Color == embed.Color_o_series) {
+		if repMsg.Author.ID == msgInfo.Session.State.User.ID && (repMsg.Embeds[0].Color == embed.ColorGPT3 || repMsg.Embeds[0].Color == embed.ColorGPT4 || repMsg.Embeds[0].Color == embed.Color_o_series || repMsg.Embeds[0].Color == embed.ColorGPT5) {
 			var truesys bool
 			if systemstr != "" {
 				truesys = true
@@ -125,28 +132,59 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 			// Setting parameter
 			if !search {
 				if temperature != 0.0 {
-					request.Temperature = float32(temperature)
+					request.Temperature = openai.Float(float64(temperature))
 				}
 				if top_p != 0.0 {
-					request.TopP = float32(top_p)
+					request.TopP = openai.Float(float64(top_p))
+				}
+			} else {
+				request.Tools = []responses.ToolUnionParam{
+					{
+						OfWebSearch: &responses.WebSearchToolParam{
+							Type:              "web_search",
+							SearchContextSize: responses.WebSearchToolSearchContextSize(search_context_size),
+						},
+					},
+				}
+
+				if user_location != nil {
+					var loc responses.WebSearchToolUserLocationParam
+					for key, val := range user_location {
+						switch key {
+						case "city":
+							loc.City = openai.String(val)
+						case "country":
+							loc.Country = openai.String(val)
+						case "region":
+							loc.Region = openai.String(val)
+						case "timezone":
+							loc.Timezone = openai.String(val)
+						}
+					}
+					loc.Type = "approximate"
+					request.Tools[0].OfWebSearch.UserLocation = loc
 				}
 			}
-			if seed != 0 {
-				request.Seed = &seed
-			}
 			if max_completion_tokens != 0 {
-				request.MaxCompletionTokens = max_completion_tokens
+				request.MaxOutputTokens = openai.Int(int64(max_completion_tokens))
 			} else {
-				request.MaxCompletionTokens = guild.MaxCompletionTokens
+				request.MaxOutputTokens = openai.Int(int64(guild.MaxCompletionTokens))
 			}
 			if reasoning_effort != "medium" {
-				request.ReasoningEffort = reasoning_effort
-			}
-			if frequency_penalty != 0.0 {
-				request.FrequencyPenalty = frequency_penalty
+				request.Reasoning = shared.ReasoningParam{Effort: shared.ReasoningEffort(reasoning_effort)}
+				// request.Reasoning = reasoning_effort
 			}
 			if systemstr != "" {
-				request.Messages = append(request.Messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleSystem, Content: systemstr})
+				request.Input.OfInputItemList = append(request.Input.OfInputItemList,
+					responses.ResponseInputItemUnionParam{
+						OfMessage: &responses.EasyInputMessageParam{
+							Content: responses.EasyInputMessageContentUnionParam{
+								OfString: openai.String(systemstr),
+							},
+							Role: "system",
+						},
+					},
+				)
 			}
 
 			if imageurl != "" {
@@ -162,27 +200,43 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 					return
 				}
 
-				messages := []openai.ChatCompletionMessage{
+				message := []responses.ResponseInputItemUnionParam{
 					{
-						Role: openai.ChatMessageRoleUser,
-						MultiContent: []openai.ChatMessagePart{
-							{
-								Type: openai.ChatMessagePartTypeText,
-								Text: content,
-							},
-							{
-								Type: openai.ChatMessagePartTypeImageURL,
-								ImageURL: &openai.ChatMessageImageURL{
-									URL:    imageurl,
-									Detail: openai.ImageURLDetail(detail),
+						OfInputMessage: &responses.ResponseInputItemMessageParam{
+							Content: []responses.ResponseInputContentUnionParam{
+								{
+									OfInputText: &responses.ResponseInputTextParam{
+										Text: content,
+										Type: "input_text",
+									},
+								},
+								{
+									OfInputImage: &responses.ResponseInputImageParam{
+										Detail:   responses.ResponseInputImageDetail(detail),
+										Type:     "input_image",
+										ImageURL: openai.String(imageurl),
+									},
 								},
 							},
+							Role: "user",
 						},
 					},
 				}
-				request.Messages = append(request.Messages, messages...)
+				request.Input.OfInputItemList = append(request.Input.OfInputItemList, message...)
+
 			} else {
-				request.Messages = append(request.Messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleUser, Content: content})
+
+				request.Input.OfInputItemList = append(request.Input.OfInputItemList,
+					responses.ResponseInputItemUnionParam{
+						OfMessage: &responses.EasyInputMessageParam{
+							Content: responses.EasyInputMessageContentUnionParam{
+								OfString: openai.String(content),
+							},
+							Role: "user",
+						},
+					},
+				)
+
 			}
 		} else if !repMsg.Author.Bot {
 			var embedContent string
@@ -190,11 +244,9 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 			if len(repMsg.Embeds) > 0 {
 				embedContent = repMsg.Embeds[0].Description
 			}
-			request.Messages = []openai.ChatCompletionMessage{
-				{
-					Role:    openai.ChatMessageRoleUser,
-					Content: repMsg.Content + embedContent + "\n\n" + content,
-				},
+
+			request.Input = responses.ResponseNewParamsInputUnion{
+				OfString: openai.String(repMsg.Content + embedContent + "\n\n" + content),
 			}
 		}
 
@@ -206,25 +258,46 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 		// Setting parameter
 		if !search {
 			if temperature != 0.0 {
-				request.Temperature = float32(temperature)
+				request.Temperature = openai.Float(float64(temperature))
 			}
 			if top_p != 0.0 {
-				request.TopP = float32(top_p)
+				request.TopP = openai.Float(float64(top_p))
+			}
+		} else {
+			request.Tools = []responses.ToolUnionParam{
+				{
+					OfWebSearch: &responses.WebSearchToolParam{
+						Type:              "web_search",
+						SearchContextSize: responses.WebSearchToolSearchContextSize(search_context_size),
+					},
+				},
+			}
+
+			if user_location != nil {
+				var loc responses.WebSearchToolUserLocationParam
+				for key, val := range user_location {
+					switch key {
+					case "city":
+						loc.City = openai.String(val)
+					case "country":
+						loc.Country = openai.String(val)
+					case "region":
+						loc.Region = openai.String(val)
+					case "timezone":
+						loc.Timezone = openai.String(val)
+					}
+				}
+				loc.Type = "approximate"
+				request.Tools[0].OfWebSearch.UserLocation = loc
 			}
 		}
-		if seed != 0 {
-			request.Seed = &seed
-		}
 		if max_completion_tokens != 0 {
-			request.MaxCompletionTokens = max_completion_tokens
+			request.MaxOutputTokens = openai.Int(int64(max_completion_tokens))
 		} else {
-			request.MaxCompletionTokens = guild.MaxCompletionTokens
+			request.MaxOutputTokens = openai.Int(int64(guild.MaxCompletionTokens))
 		}
 		if reasoning_effort != "medium" {
-			request.ReasoningEffort = reasoning_effort
-		}
-		if frequency_penalty != 0.0 {
-			request.FrequencyPenalty = frequency_penalty
+			request.Reasoning = shared.ReasoningParam{Effort: shared.ReasoningEffort(reasoning_effort)}
 		}
 
 		if imageurl != "" {
@@ -241,27 +314,41 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 			}
 
 			if systemstr != "" {
-				request.Messages = append(request.Messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleSystem, Content: systemstr})
-			}
-			messages := []openai.ChatCompletionMessage{
-				{
-					Role: openai.ChatMessageRoleUser,
-					MultiContent: []openai.ChatMessagePart{
-						{
-							Type: openai.ChatMessagePartTypeText,
-							Text: content,
+				request.Input.OfInputItemList = append(request.Input.OfInputItemList,
+					responses.ResponseInputItemUnionParam{
+						OfMessage: &responses.EasyInputMessageParam{
+							Content: responses.EasyInputMessageContentUnionParam{
+								OfString: openai.String(systemstr),
+							},
+							Role: "system",
 						},
-						{
-							Type: openai.ChatMessagePartTypeImageURL,
-							ImageURL: &openai.ChatMessageImageURL{
-								URL:    imageurl,
-								Detail: openai.ImageURLDetail(detail),
+					},
+				)
+			}
+
+			message := []responses.ResponseInputItemUnionParam{
+				{
+					OfInputMessage: &responses.ResponseInputItemMessageParam{
+						Content: []responses.ResponseInputContentUnionParam{
+							{
+								OfInputText: &responses.ResponseInputTextParam{
+									Text: content,
+									Type: "input_text",
+								},
+							},
+							{
+								OfInputImage: &responses.ResponseInputImageParam{
+									Detail:   responses.ResponseInputImageDetail(detail),
+									Type:     "input_image",
+									ImageURL: openai.String(imageurl),
+								},
 							},
 						},
+						Role: "user",
 					},
 				},
 			}
-			request.Messages = append(request.Messages, messages...)
+			request.Input.OfInputItemList = append(request.Input.OfInputItemList, message...)
 
 			RunApi(msgInfo, request, content, filter, search, start)
 			return
@@ -269,31 +356,54 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 		}
 
 		if systemstr != "" {
-			request.Messages = append(request.Messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleSystem, Content: systemstr})
+			request.Input.OfInputItemList = append(request.Input.OfInputItemList,
+				responses.ResponseInputItemUnionParam{
+					OfMessage: &responses.EasyInputMessageParam{
+						Content: responses.EasyInputMessageContentUnionParam{
+							OfString: openai.String(systemstr),
+						},
+						Role: "system",
+					},
+				},
+			)
+
 		}
-		messages := []openai.ChatCompletionMessage{
-			{
-				Role:    openai.ChatMessageRoleUser,
-				Content: content,
+
+		request.Input.OfInputItemList = append(request.Input.OfInputItemList,
+			responses.ResponseInputItemUnionParam{
+				OfMessage: &responses.EasyInputMessageParam{
+					Content: responses.EasyInputMessageContentUnionParam{
+						OfString: openai.String(content),
+					},
+					Role: "user",
+				},
 			},
-		}
-		request.Messages = append(request.Messages, messages...)
+		)
 
 		RunApi(msgInfo, request, content, filter, search, start)
 		return
 	}
 }
 
-func goBackMessage(request openai.ChatCompletionRequest, msgInfo *embed.MsgInfo, guild config.Guild, repMsg *discordgo.Message, repnum int, truesys bool, search bool) (openai.ChatCompletionRequest, error) {
+func goBackMessage(request responses.ResponseNewParams, msgInfo *embed.MsgInfo, guild config.Guild, repMsg *discordgo.Message, repnum int, truesys bool, search bool) (responses.ResponseNewParams, error) {
 	var err error
 
 	for i := 0; i < repnum; i++ {
 		if repMsg.Author.ID != msgInfo.Session.State.User.ID {
 			break
-		} else if repMsg.Embeds[0].Color != embed.ColorGPT3 && repMsg.Embeds[0].Color != embed.ColorGPT4 && repMsg.Embeds[0].Color != embed.Color_o_series {
+		} else if repMsg.Embeds[0].Color != embed.ColorGPT3 && repMsg.Embeds[0].Color != embed.ColorGPT4 && repMsg.Embeds[0].Color != embed.Color_o_series && repMsg.Embeds[0].Color != embed.ColorGPT5 {
 			break
 		}
-		request.Messages = append(request.Messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleAssistant, Content: repMsg.Embeds[0].Description})
+		request.Input.OfInputItemList = append(request.Input.OfInputItemList,
+			responses.ResponseInputItemUnionParam{
+				OfMessage: &responses.EasyInputMessageParam{
+					Content: responses.EasyInputMessageContentUnionParam{
+						OfString: openai.String(repMsg.Embeds[0].Description),
+					},
+					Role: "assistant",
+				},
+			},
+		)
 
 		if repMsg.ReferencedMessage == nil {
 			break
@@ -316,30 +426,24 @@ func goBackMessage(request openai.ChatCompletionRequest, msgInfo *embed.MsgInfo,
 			break
 		}
 		_, _, trimmed := utils.TrimPrefix(repMsg.Content, guild.Prefix, msgInfo.Session.State.User.Mention())
-		content, modelstr, systemstr, imageurl, detail, reasoning_effort, temperature, top_p, frequency_penalty, _, max_completion_tokens, seed, _, _ := splitChatMsg(&trimmed, msgInfo, guild, &request, &search)
+		content, modelstr, systemstr, imageurl, detail, reasoning_effort, _, _, temperature, top_p, _, max_completion_tokens, _, _ := splitChatMsg(&trimmed, msgInfo, guild, &request, &search)
 
 		// Setting parameter
 		if !search {
-			if temperature != 1.0 && request.Temperature == 1.0 {
-				request.Temperature = float32(temperature)
+			if temperature != 1.0 && request.Temperature == openai.Float(1.0) {
+				request.Temperature = openai.Float(temperature)
 			}
-			if top_p != 1.0 && request.TopP == 1.0 {
-				request.TopP = float32(top_p)
+			if top_p != 1.0 && request.TopP == openai.Float(1.0) {
+				request.TopP = openai.Float(top_p)
 			}
 		}
-		if seed != 0 && request.Seed == nil {
-			request.Seed = &seed
-		}
-		if max_completion_tokens != 0 && request.MaxCompletionTokens == guild.MaxCompletionTokens {
-			request.MaxCompletionTokens = max_completion_tokens
+		if max_completion_tokens != 0 && request.MaxOutputTokens == openai.Int(int64(guild.MaxCompletionTokens)) {
+			request.MaxOutputTokens = openai.Int(int64(max_completion_tokens))
 		} else {
-			request.MaxCompletionTokens = guild.MaxCompletionTokens
+			request.MaxOutputTokens = openai.Int(int64(guild.MaxCompletionTokens))
 		}
-		if reasoning_effort != "medium" && request.ReasoningEffort == "" {
-			request.ReasoningEffort = reasoning_effort
-		}
-		if frequency_penalty != 0.0 && request.FrequencyPenalty == 0.0 {
-			request.FrequencyPenalty = frequency_penalty
+		if reasoning_effort != "medium" && request.Reasoning.Effort == "" {
+			request.Reasoning = shared.ReasoningParam{Effort: shared.ReasoningEffort(reasoning_effort)}
 		}
 
 		if imageurl != "" {
@@ -356,31 +460,53 @@ func goBackMessage(request openai.ChatCompletionRequest, msgInfo *embed.MsgInfo,
 				return request, err
 			}
 
-			message := []openai.ChatCompletionMessage{
+			message := []responses.ResponseInputItemUnionParam{
 				{
-					Role: openai.ChatMessageRoleUser,
-					MultiContent: []openai.ChatMessagePart{
-						{
-							Type: openai.ChatMessagePartTypeText,
-							Text: content,
-						},
-						{
-							Type: openai.ChatMessagePartTypeImageURL,
-							ImageURL: &openai.ChatMessageImageURL{
-								URL:    imageurl,
-								Detail: openai.ImageURLDetail(detail),
+					OfInputMessage: &responses.ResponseInputItemMessageParam{
+						Content: []responses.ResponseInputContentUnionParam{
+							{
+								OfInputText: &responses.ResponseInputTextParam{
+									Text: content,
+									Type: "input_text",
+								},
+							},
+							{
+								OfInputImage: &responses.ResponseInputImageParam{
+									Detail:   responses.ResponseInputImageDetail(detail),
+									Type:     "input_image",
+									ImageURL: openai.String(imageurl),
+								},
 							},
 						},
+						Role: "user",
 					},
 				},
 			}
-			request.Messages = append(request.Messages, message...)
+			request.Input.OfInputItemList = append(request.Input.OfInputItemList, message...)
 		} else {
-			request.Messages = append(request.Messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleUser, Content: content})
+			request.Input.OfInputItemList = append(request.Input.OfInputItemList,
+				responses.ResponseInputItemUnionParam{
+					OfMessage: &responses.EasyInputMessageParam{
+						Content: responses.EasyInputMessageContentUnionParam{
+							OfString: openai.String(content),
+						},
+						Role: "user",
+					},
+				},
+			)
 		}
 
 		if !truesys && systemstr != "" {
-			request.Messages = append(request.Messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleSystem, Content: systemstr})
+			request.Input.OfInputItemList = append(request.Input.OfInputItemList,
+				responses.ResponseInputItemUnionParam{
+					OfMessage: &responses.EasyInputMessageParam{
+						Content: responses.EasyInputMessageContentUnionParam{
+							OfString: openai.String(systemstr),
+						},
+						Role: "system",
+					},
+				},
+			)
 		}
 
 		if repMsg.ReferencedMessage == nil {
@@ -401,27 +527,18 @@ func goBackMessage(request openai.ChatCompletionRequest, msgInfo *embed.MsgInfo,
 		}
 	}
 
-	reverse(request.Messages)
+	slices.Reverse(request.Input.OfInputItemList)
 	return request, nil
 }
 
-// https://stackoverflow.com/questions/28058278/how-do-i-reverse-a-slice-in-go
-func reverse(s interface{}) {
-	n := reflect.ValueOf(s).Len()
-	swap := reflect.Swapper(s)
-	for i, j := 0, n-1; i < j; i, j = i+1, j-1 {
-		swap(i, j)
-	}
-}
-
-func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, request *openai.ChatCompletionRequest, search *bool) (string, string, string, string, string, string, float64, float64, float32, int, int, int, bool, error) {
+func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, request *responses.ResponseNewParams, search *bool) (string, string, string, string, string, string, string, map[string]string, float64, float64, int, int, bool, error) {
 	var (
-		content, modelstr, systemstr, imageurl, detail, reasoning_effort string
-		temperature, top_p                                               float64
-		frequency_penalty                                                float32
-		prm, filter                                                      bool
-		repnum, max_completion_tokens, seed                              int
-		err                                                              error
+		content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size string
+		temperature, top_p                                                                    float64
+		prm, filter                                                                           bool
+		repnum, max_completion_tokens                                                         int
+		err                                                                                   error
+		user_location                                                                         = map[string]string{}
 	)
 
 	str := strings.Split(*msg, " ")
@@ -431,9 +548,9 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 	prm = true
 	modelstr = guild.Model.Chat
 	reasoning_effort = "medium"
+	search_context_size = "medium"
 	temperature = 1.0
 	top_p = 1.0
-	frequency_penalty = 0.0
 
 	for i := 0; i < len(str); i++ {
 		if strings.HasPrefix(str[i], "-") && prm && !filter {
@@ -480,24 +597,25 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 			case "--max_completion_tokens":
 				max_completion_tokens, err = strconv.Atoi(str[i+1])
 				i += 1
-			case "--seed":
-				seed, _ = strconv.Atoi(str[i+1])
-				i += 1
 			case "--reasoning_effort":
-				if str[i+1] == "minimal" || str[i+1] == "low" || str[i+1] == "medium" || str[i+1] == "high" {
+				if str[i+1] == "none" || str[i+1] == "minimal" || str[i+1] == "low" || str[i+1] == "medium" || str[i+1] == "high" || str[i+1] == "xhigh" {
 					reasoning_effort = str[i+1]
 					i += 1
 				} else {
 					reasoning_effort = "miss"
 				}
-			case "--frequency_penalty":
-				freqPenalty, parseErr := strconv.ParseFloat(str[i+1], 64)
-				if parseErr != nil || freqPenalty < -2.0 || freqPenalty > 2.0 {
-					frequency_penalty = -9999.0
-				} else {
-					frequency_penalty = float32(freqPenalty)
-				}
+			case "--websearch":
+				*search = true
+			case "--search_context_size":
+				search_context_size = str[i+1]
 				i += 1
+			case "--user_location":
+				if str[i+1] == "city" || str[i+1] == "country" || str[i+1] == "region" {
+					user_location = map[string]string{str[i+1]: str[i+2]}
+				} else if str[i+1] == "type" {
+					user_location = map[string]string{str[i+1]: "approximate"}
+				}
+				i += 2
 			default:
 				content += str[i] + " "
 				prm = false
@@ -516,7 +634,7 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 		} else {
 			embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.NoModel)
 			err = errors.New("no model")
-			return content, modelstr, systemstr, imageurl, detail, reasoning_effort, temperature, top_p, frequency_penalty, repnum, max_completion_tokens, seed, filter, err
+			return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_completion_tokens, filter, err
 		}
 	}
 
@@ -526,28 +644,34 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 	if modelstr == "gpt-4o-search-preview" || modelstr == "gpt-4o-mini-search-preview" {
 		*search = true
 	}
+	if (modelstr != "gpt-5-pro" && reasoning_effort == "xhigh") || (modelstr != "gpt-5.1" && reasoning_effort == "none") {
+		embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.Invalid)
+		err = errors.New("invalid reasoning effort")
+		return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_completion_tokens, filter, err
+	}
 
-	return content, modelstr, systemstr, imageurl, detail, reasoning_effort, temperature, top_p, frequency_penalty, repnum, max_completion_tokens, seed, filter, err
+	return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_completion_tokens, filter, err
 }
 
-func RunApi(msgInfo *embed.MsgInfo, request openai.ChatCompletionRequest, content string, filter bool, search bool, start time.Time) {
+func RunApi(msgInfo *embed.MsgInfo, request responses.ResponseNewParams, content string, filter bool, search bool, start time.Time) {
 
 	// Verify reasoning effort
 	re := regexp.MustCompile(`(^o\d.*|^gpt-5.*)`)
-	if request.ReasoningEffort != "" && !re.Match([]byte(request.Model)) {
+	if request.Reasoning.Effort != "" && !re.Match([]byte(request.Model)) {
 		embed.WarningReply(msgInfo, config.Lang[msgInfo.Lang].Warning.NoSupportedParameter)
-		request.ReasoningEffort = ""
+		request.Reasoning.Effort = ""
 	}
 
 	// Verify parameter
-	if request.ReasoningEffort == "miss" && request.Temperature == -1.0 && request.TopP == -1.0 && request.FrequencyPenalty == -9999.0 {
+	if request.Reasoning.Effort == "miss" && request.Temperature == openai.Float(-1.0) && request.TopP == openai.Float(-1.0) {
 		embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.SubCmd)
 		return
 	}
 
 	// Run OpenAI API
-	client := openai.NewClient(config.CurrentConfig.Openai.Token)
-	resp, err := client.CreateChatCompletion(
+	client := openai.NewClient(option.WithAPIKey(config.CurrentConfig.Openai.Token))
+
+	resp, err := client.Responses.New(
 		context.Background(),
 		request,
 	)
@@ -557,29 +681,39 @@ func RunApi(msgInfo *embed.MsgInfo, request openai.ChatCompletionRequest, conten
 		return
 	}
 
-	response := resp.Choices[0].Message.Content
+	var response, refusal string
+	for _, val := range resp.Output {
+		if val.Type == "message" {
+			for _, msCon := range val.Content {
+				switch msCon.Type {
+				case "output_text":
+					response = msCon.Text
+				case "refusal":
+					refusal = msCon.Refusal
+				}
+			}
+		}
+	}
+
+	if refusal != "" {
+		response += "\n\n" + config.Lang[msgInfo.Lang].Content.RefusalReasonTitle + ":\n" + refusal
+	}
 
 	// Add usage to database
-	promptTokens := resp.Usage.PromptTokens
-	promptCacheTokens := resp.Usage.PromptTokensDetails.CachedTokens
-	completionTokens := resp.Usage.CompletionTokens
+	InputTokens := resp.Usage.InputTokens
+	promptCacheTokens := resp.Usage.InputTokensDetails.CachedTokens
+	OutputTokens := resp.Usage.OutputTokens
 
-	if err := database.AddUsage(msgInfo.OrgMsg.GuildID, request.Model, "prompt_tokens", promptTokens); err != nil {
+	if err := database.AddUsage(msgInfo.OrgMsg.GuildID, request.Model, "input_tokens", int(InputTokens)); err != nil {
 		log.Println("DB追加エラー:", err)
 		embed.WarningReply(msgInfo, config.Lang[msgInfo.Lang].Warning.DataSaveError)
 	}
-	if err := database.AddUsage(msgInfo.OrgMsg.GuildID, request.Model, "completion_tokens", completionTokens); err != nil {
+	if err := database.AddUsage(msgInfo.OrgMsg.GuildID, request.Model, "output_tokens", int(OutputTokens)); err != nil {
 		log.Println("DB追加エラー:", err)
 		embed.WarningReply(msgInfo, config.Lang[msgInfo.Lang].Warning.DataSaveError)
 	}
 	if promptCacheTokens > 0 {
-		if err := database.AddUsage(msgInfo.OrgMsg.GuildID, request.Model, "prompt_cache_tokens", promptCacheTokens); err != nil {
-			log.Println("DB追加エラー:", err)
-			embed.WarningReply(msgInfo, config.Lang[msgInfo.Lang].Warning.DataSaveError)
-		}
-	}
-	if search {
-		if err := database.AddUsage(msgInfo.OrgMsg.GuildID, request.Model, "search_tokens", 1); err != nil {
+		if err := database.AddUsage(msgInfo.OrgMsg.GuildID, request.Model, "input_cache_tokens", int(promptCacheTokens)); err != nil {
 			log.Println("DB追加エラー:", err)
 			embed.WarningReply(msgInfo, config.Lang[msgInfo.Lang].Warning.DataSaveError)
 		}
@@ -617,7 +751,7 @@ func RunApi(msgInfo *embed.MsgInfo, request openai.ChatCompletionRequest, conten
 		msgEmbed.Title = content
 	}
 	if filter {
-		msgEmbed.Title = "Social Filter"
+		msgEmbed.Title = config.Lang[msgInfo.Lang].Content.SocialFilterTitle
 	}
 
 	// Setting mebed footer

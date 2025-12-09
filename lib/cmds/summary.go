@@ -8,9 +8,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/responses"
 	"github.com/pkoukk/tiktoken-go"
 	tiktoken_loader "github.com/pkoukk/tiktoken-go-loader"
-	"github.com/sashabaranov/go-openai"
+
 	"github.com/tpc3/Bocchi-Re/lib/config"
 	"github.com/tpc3/Bocchi-Re/lib/embed"
 )
@@ -18,6 +20,7 @@ import (
 const Summary = "summary"
 
 func SummaryCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
+	msgInfo.Session.MessageReactionAdd(msgInfo.OrgMsg.ChannelID, msgInfo.OrgMsg.ID, "🤔")
 
 	start := time.Now()
 
@@ -89,14 +92,11 @@ func SummaryCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 		return
 	}
 
-	request := openai.ChatCompletionRequest{
-		Model:               "gpt-5-nano",
-		MaxCompletionTokens: max_completion_tokens,
-		Messages: []openai.ChatCompletionMessage{
-			{
-				Role:    openai.ChatMessageRoleUser,
-				Content: finalText,
-			},
+	request := responses.ResponseNewParams{
+		Model:           "gpt-5-nano",
+		MaxOutputTokens: openai.Int(int64(max_completion_tokens)),
+		Input: responses.ResponseNewParamsInputUnion{
+			OfString: openai.String(finalText),
 		},
 	}
 
