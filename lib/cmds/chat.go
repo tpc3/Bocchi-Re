@@ -107,7 +107,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 		embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.NoImg)
 		return
 	}
-	if strings.Contains(strings.ReplaceAll(*msg, content, ""), "--search_context_size") || strings.Contains(strings.ReplaceAll(*msg, content, ""), "--user_location") && !search {
+	if (strings.Contains(strings.ReplaceAll(*msg, content, ""), "--search_context_size") || strings.Contains(strings.ReplaceAll(*msg, content, ""), "--user_location")) && !search {
 		embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.Invalid)
 		return
 	}
