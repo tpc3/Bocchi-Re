@@ -130,14 +130,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 			}
 
 			// Setting parameter
-			if !search {
-				if temperature != 0.0 {
-					request.Temperature = openai.Float(float64(temperature))
-				}
-				if top_p != 0.0 {
-					request.TopP = openai.Float(float64(top_p))
-				}
-			} else {
+			if search {
 				request.Tools = []responses.ToolUnionParam{
 					{
 						OfWebSearch: &responses.WebSearchToolParam{
@@ -163,6 +156,13 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 					}
 					loc.Type = "approximate"
 					request.Tools[0].OfWebSearch.UserLocation = loc
+				}
+			} else if !(strings.Contains(modelstr, "gpt-5.2") && reasoning_effort != "none") {
+				if temperature != 0.0 {
+					request.Temperature = openai.Float(float64(temperature))
+				}
+				if top_p != 0.0 {
+					request.TopP = openai.Float(float64(top_p))
 				}
 			}
 			if max_output_tokens != 0 {
@@ -256,14 +256,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 		// No Reply
 
 		// Setting parameter
-		if !search {
-			if temperature != 0.0 {
-				request.Temperature = openai.Float(float64(temperature))
-			}
-			if top_p != 0.0 {
-				request.TopP = openai.Float(float64(top_p))
-			}
-		} else {
+		if search {
 			request.Tools = []responses.ToolUnionParam{
 				{
 					OfWebSearch: &responses.WebSearchToolParam{
@@ -289,6 +282,13 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 				}
 				loc.Type = "approximate"
 				request.Tools[0].OfWebSearch.UserLocation = loc
+			}
+		} else if !(strings.Contains(modelstr, "gpt-5.2") && reasoning_effort != "none") {
+			if temperature != 0.0 {
+				request.Temperature = openai.Float(float64(temperature))
+			}
+			if top_p != 0.0 {
+				request.TopP = openai.Float(float64(top_p))
 			}
 		}
 		if max_output_tokens != 0 {
@@ -429,7 +429,7 @@ func goBackMessage(request responses.ResponseNewParams, msgInfo *embed.MsgInfo, 
 		content, modelstr, systemstr, imageurl, detail, reasoning_effort, _, _, temperature, top_p, _, max_output_tokens, _, _ := splitChatMsg(&trimmed, msgInfo, guild, &request, &search)
 
 		// Setting parameter
-		if !search {
+		if !search && !(strings.Contains(modelstr, "gpt-5.2") && reasoning_effort != "none") {
 			if temperature != 1.0 && request.Temperature == openai.Float(1.0) {
 				request.Temperature = openai.Float(temperature)
 			}
