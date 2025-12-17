@@ -44,7 +44,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 	start := time.Now()
 	request := responses.ResponseNewParams{}
 
-	content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_completion_tokens, filter, err := splitChatMsg(msg, msgInfo, guild, &request, &search)
+	content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, err := splitChatMsg(msg, msgInfo, guild, &request, &search)
 
 	if err != nil {
 		if err.Error() == "no model" || err.Error() == "invalid reasoning effort" {
@@ -130,14 +130,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 			}
 
 			// Setting parameter
-			if !search {
-				if temperature != 0.0 {
-					request.Temperature = openai.Float(float64(temperature))
-				}
-				if top_p != 0.0 {
-					request.TopP = openai.Float(float64(top_p))
-				}
-			} else {
+			if search {
 				request.Tools = []responses.ToolUnionParam{
 					{
 						OfWebSearch: &responses.WebSearchToolParam{
@@ -164,9 +157,16 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 					loc.Type = "approximate"
 					request.Tools[0].OfWebSearch.UserLocation = loc
 				}
+			} else if !(strings.Contains(modelstr, "gpt-5.2") && reasoning_effort != "none") {
+				if temperature != 0.0 {
+					request.Temperature = openai.Float(float64(temperature))
+				}
+				if top_p != 0.0 {
+					request.TopP = openai.Float(float64(top_p))
+				}
 			}
-			if max_completion_tokens != 0 {
-				request.MaxOutputTokens = openai.Int(int64(max_completion_tokens))
+			if max_output_tokens != 0 {
+				request.MaxOutputTokens = openai.Int(int64(max_output_tokens))
 			} else {
 				request.MaxOutputTokens = openai.Int(int64(guild.MaxCompletionTokens))
 			}
@@ -256,14 +256,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 		// No Reply
 
 		// Setting parameter
-		if !search {
-			if temperature != 0.0 {
-				request.Temperature = openai.Float(float64(temperature))
-			}
-			if top_p != 0.0 {
-				request.TopP = openai.Float(float64(top_p))
-			}
-		} else {
+		if search {
 			request.Tools = []responses.ToolUnionParam{
 				{
 					OfWebSearch: &responses.WebSearchToolParam{
@@ -290,9 +283,16 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 				loc.Type = "approximate"
 				request.Tools[0].OfWebSearch.UserLocation = loc
 			}
+		} else if !(strings.Contains(modelstr, "gpt-5.2") && reasoning_effort != "none") {
+			if temperature != 0.0 {
+				request.Temperature = openai.Float(float64(temperature))
+			}
+			if top_p != 0.0 {
+				request.TopP = openai.Float(float64(top_p))
+			}
 		}
-		if max_completion_tokens != 0 {
-			request.MaxOutputTokens = openai.Int(int64(max_completion_tokens))
+		if max_output_tokens != 0 {
+			request.MaxOutputTokens = openai.Int(int64(max_output_tokens))
 		} else {
 			request.MaxOutputTokens = openai.Int(int64(guild.MaxCompletionTokens))
 		}
@@ -426,10 +426,10 @@ func goBackMessage(request responses.ResponseNewParams, msgInfo *embed.MsgInfo, 
 			break
 		}
 		_, _, trimmed := utils.TrimPrefix(repMsg.Content, guild.Prefix, msgInfo.Session.State.User.Mention())
-		content, modelstr, systemstr, imageurl, detail, reasoning_effort, _, _, temperature, top_p, _, max_completion_tokens, _, _ := splitChatMsg(&trimmed, msgInfo, guild, &request, &search)
+		content, modelstr, systemstr, imageurl, detail, reasoning_effort, _, _, temperature, top_p, _, max_output_tokens, _, _ := splitChatMsg(&trimmed, msgInfo, guild, &request, &search)
 
 		// Setting parameter
-		if !search {
+		if !search && !(strings.Contains(modelstr, "gpt-5.2") && reasoning_effort != "none") {
 			if temperature != 1.0 && request.Temperature == openai.Float(1.0) {
 				request.Temperature = openai.Float(temperature)
 			}
@@ -437,8 +437,8 @@ func goBackMessage(request responses.ResponseNewParams, msgInfo *embed.MsgInfo, 
 				request.TopP = openai.Float(top_p)
 			}
 		}
-		if max_completion_tokens != 0 && request.MaxOutputTokens == openai.Int(int64(guild.MaxCompletionTokens)) {
-			request.MaxOutputTokens = openai.Int(int64(max_completion_tokens))
+		if max_output_tokens != 0 && request.MaxOutputTokens == openai.Int(int64(guild.MaxCompletionTokens)) {
+			request.MaxOutputTokens = openai.Int(int64(max_output_tokens))
 		} else {
 			request.MaxOutputTokens = openai.Int(int64(guild.MaxCompletionTokens))
 		}
@@ -536,7 +536,7 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 		content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size string
 		temperature, top_p                                                                    float64
 		prm, filter                                                                           bool
-		repnum, max_completion_tokens                                                         int
+		repnum, max_output_tokens                                                             int
 		err                                                                                   error
 		user_location                                                                         = map[string]string{}
 	)
@@ -594,8 +594,8 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 			case "-l":
 				repnum, err = strconv.Atoi(str[i+1])
 				i += 1
-			case "--max_completion_tokens":
-				max_completion_tokens, err = strconv.Atoi(str[i+1])
+			case "--max_output_tokens":
+				max_output_tokens, err = strconv.Atoi(str[i+1])
 				i += 1
 			case "--reasoning_effort":
 				if str[i+1] == "none" || str[i+1] == "minimal" || str[i+1] == "low" || str[i+1] == "medium" || str[i+1] == "high" || str[i+1] == "xhigh" {
@@ -634,7 +634,7 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 		} else {
 			embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.NoModel)
 			err = errors.New("no model")
-			return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_completion_tokens, filter, err
+			return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, err
 		}
 	}
 
@@ -644,13 +644,13 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 	if modelstr == "gpt-4o-search-preview" || modelstr == "gpt-4o-mini-search-preview" {
 		*search = true
 	}
-	if (modelstr != "gpt-5-pro" && reasoning_effort == "xhigh") || (modelstr != "gpt-5.1" && reasoning_effort == "none") {
+	if (modelstr != "gpt-5-pro" && reasoning_effort == "xhigh") || ((modelstr != "gpt-5.1" && modelstr != "gpt-5.2") && reasoning_effort == "none") {
 		embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.Invalid)
 		err = errors.New("invalid reasoning effort")
-		return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_completion_tokens, filter, err
+		return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, err
 	}
 
-	return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_completion_tokens, filter, err
+	return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, err
 }
 
 func RunApi(msgInfo *embed.MsgInfo, request responses.ResponseNewParams, content string, filter bool, search bool, start time.Time) {
