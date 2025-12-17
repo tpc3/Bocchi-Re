@@ -24,14 +24,14 @@ func SummaryCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 
 	start := time.Now()
 
-	before, after, limit, max_completion_tokens, err := splitSummaryMsg(msg)
+	before, after, limit, max_output_tokens, err := splitSummaryMsg(msg)
 	if err != nil || limit <= 0 || limit > 100 || (before != "" && after != "") {
 		embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.Invalid)
 		return
 	}
 
-	if max_completion_tokens == 0 {
-		max_completion_tokens = guild.MaxCompletionTokens
+	if max_output_tokens == 0 {
+		max_output_tokens = guild.MaxOutputTokens
 	}
 
 	msgLog, err := msgInfo.Session.ChannelMessages(msgInfo.OrgMsg.ChannelID, limit, before, after, "")
@@ -87,14 +87,14 @@ func SummaryCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 	fmt.Fprintf(&sb, "---\n\n%s", config.Lang[msgInfo.Lang].Content.Summary)
 	finalText := sb.String()
 
-	if caltokens(finalText) > max_completion_tokens {
+	if caltokens(finalText) > max_output_tokens {
 		embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.InsufficientTokens)
 		return
 	}
 
 	request := responses.ResponseNewParams{
 		Model:           "gpt-5-nano",
-		MaxOutputTokens: openai.Int(int64(max_completion_tokens)),
+		MaxOutputTokens: openai.Int(int64(max_output_tokens)),
 		Input: responses.ResponseNewParamsInputUnion{
 			OfString: openai.String(finalText),
 		},
@@ -119,9 +119,9 @@ func caltokens(text string) int {
 
 func splitSummaryMsg(msg *string) (string, string, int, int, error) {
 	var (
-		before, after                string
-		limit, max_completion_tokens int
-		err                          error
+		before, after            string
+		limit, max_output_tokens int
+		err                      error
 	)
 	limit = 50
 
@@ -135,12 +135,12 @@ func splitSummaryMsg(msg *string) (string, string, int, int, error) {
 				after = str[i+1]
 			case "-l":
 				limit, err = strconv.Atoi(str[i+1])
-			case "--max_completion_tokens":
-				max_completion_tokens, err = strconv.Atoi(str[i+1])
+			case "--max_output_tokens":
+				max_output_tokens, err = strconv.Atoi(str[i+1])
 			}
 			i++
 		}
 	}
 
-	return before, after, limit, max_completion_tokens, err
+	return before, after, limit, max_output_tokens, err
 }

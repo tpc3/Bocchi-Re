@@ -58,12 +58,12 @@ func ConfigCmd(msgInfo *embed.MsgInfo, guild config.Guild) {
 			return
 		}
 		guild.Reply, err = strconv.Atoi(split[2])
-	case "max_completion_tokens":
+	case "max_output_tokens":
 		if len(split) != 3 {
 			embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.Invalid)
 			return
 		}
-		guild.MaxCompletionTokens, err = strconv.Atoi(split[2])
+		guild.MaxOutputTokens, err = strconv.Atoi(split[2])
 	case "reset":
 		if len(split) != 2 {
 			embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.Invalid)

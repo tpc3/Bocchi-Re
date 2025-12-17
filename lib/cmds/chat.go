@@ -168,7 +168,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 			if max_output_tokens != 0 {
 				request.MaxOutputTokens = openai.Int(int64(max_output_tokens))
 			} else {
-				request.MaxOutputTokens = openai.Int(int64(guild.MaxCompletionTokens))
+				request.MaxOutputTokens = openai.Int(int64(guild.MaxOutputTokens))
 			}
 			if reasoning_effort != "medium" {
 				request.Reasoning = shared.ReasoningParam{Effort: shared.ReasoningEffort(reasoning_effort)}
@@ -294,7 +294,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 		if max_output_tokens != 0 {
 			request.MaxOutputTokens = openai.Int(int64(max_output_tokens))
 		} else {
-			request.MaxOutputTokens = openai.Int(int64(guild.MaxCompletionTokens))
+			request.MaxOutputTokens = openai.Int(int64(guild.MaxOutputTokens))
 		}
 		if reasoning_effort != "medium" {
 			request.Reasoning = shared.ReasoningParam{Effort: shared.ReasoningEffort(reasoning_effort)}
@@ -437,10 +437,10 @@ func goBackMessage(request responses.ResponseNewParams, msgInfo *embed.MsgInfo, 
 				request.TopP = openai.Float(top_p)
 			}
 		}
-		if max_output_tokens != 0 && request.MaxOutputTokens == openai.Int(int64(guild.MaxCompletionTokens)) {
+		if max_output_tokens != 0 && request.MaxOutputTokens == openai.Int(int64(guild.MaxOutputTokens)) {
 			request.MaxOutputTokens = openai.Int(int64(max_output_tokens))
 		} else {
-			request.MaxOutputTokens = openai.Int(int64(guild.MaxCompletionTokens))
+			request.MaxOutputTokens = openai.Int(int64(guild.MaxOutputTokens))
 		}
 		if reasoning_effort != "medium" && request.Reasoning.Effort == "" {
 			request.Reasoning = shared.ReasoningParam{Effort: shared.ReasoningEffort(reasoning_effort)}

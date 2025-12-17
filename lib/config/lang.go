@@ -69,13 +69,13 @@ func loadLang() {
 			CantGetImage:         "画像の取得に失敗しました。",
 			Invalid:              "コマンドの形式が不正です。",
 			NoVisionModel:        "このモデルは画像を読み込めません。",
-			InsufficientTokens:   "トークンが不足しています。`max_completion_tokens`を増やしてください。",
+			InsufficientTokens:   "トークンが不足しています。`max_output_tokens`を増やしてください。",
 		},
 		Warning: warning{
 			Title:                "注意",
 			NoSupportedParameter: "指定されたパラメータは、このモデルでは利用できません。",
 			DataSaveError:        "データの保存に失敗しました。",
-			NoResponse:           "返答がありません。おそらくトークン不足なので、`max_completion_tokens`を増やしてもう一度お試しください。",
+			NoResponse:           "返答がありません。おそらくトークン不足なので、`max_output_tokens`を増やしてもう一度お試しください。",
 		},
 		Content: content{
 			ExexTime:           "実行時間",
@@ -109,13 +109,13 @@ func loadLang() {
 			CantGetImage:         "Fatal to get image.",
 			Invalid:              "Invalid command.",
 			NoVisionModel:        "This model can't load image.",
-			InsufficientTokens:   "Insufficient tokens. Please increase `max_completion_tokens`.",
+			InsufficientTokens:   "Insufficient tokens. Please increase `max_output_tokens`.",
 		},
 		Warning: warning{
 			Title:                "Warning!",
 			NoSupportedParameter: "The specified parameter cannot be used with this model.",
 			DataSaveError:        "Data save error.",
-			NoResponse:           "No response. Maybe you need to increase `max_completion_tokens`.",
+			NoResponse:           "No response. Maybe you need to increase `max_output_tokens`.",
 		},
 		Content: content{
 			ExexTime:           "Execution time: ",

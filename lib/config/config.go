@@ -32,11 +32,11 @@ type Config struct {
 }
 
 type Guild struct {
-	Prefix              string `yaml:",omitempty"`
-	Lang                string `yaml:",omitempty"`
-	Model               Model  `yaml:",omitempty"`
-	Reply               int    `yaml:",omitempty"`
-	MaxCompletionTokens int    `yaml:",omitempty"`
+	Prefix          string `yaml:",omitempty"`
+	Lang            string `yaml:",omitempty"`
+	Model           Model  `yaml:",omitempty"`
+	Reply           int    `yaml:",omitempty"`
+	MaxOutputTokens int    `yaml:",omitempty"`
 }
 
 type Model struct {
@@ -116,11 +116,11 @@ func LoadGuild(id *string) (*Guild, error) {
 	file, err := os.ReadFile(CurrentConfig.Config + *id + ".yaml")
 	if os.IsNotExist(err) {
 		return &Guild{
-			Prefix:              CurrentConfig.Guild.Prefix,
-			Lang:                CurrentConfig.Guild.Lang,
-			Model:               CurrentConfig.Guild.Model,
-			Reply:               CurrentConfig.Guild.Reply,
-			MaxCompletionTokens: CurrentConfig.Guild.MaxCompletionTokens,
+			Prefix:          CurrentConfig.Guild.Prefix,
+			Lang:            CurrentConfig.Guild.Lang,
+			Model:           CurrentConfig.Guild.Model,
+			Reply:           CurrentConfig.Guild.Reply,
+			MaxOutputTokens: CurrentConfig.Guild.MaxOutputTokens,
 		}, nil
 	} else if err != nil {
 		return nil, err
@@ -137,7 +137,7 @@ func LoadGuild(id *string) (*Guild, error) {
 }
 
 func SaveGuild(id *string, guild *Guild) error {
-	if guild.Prefix == CurrentConfig.Guild.Prefix && guild.Lang == CurrentConfig.Guild.Lang && guild.Model.Chat == CurrentConfig.Guild.Model.Chat && guild.Model.Image == CurrentConfig.Guild.Model.Image && guild.Reply == CurrentConfig.Guild.Reply && guild.MaxCompletionTokens == CurrentConfig.Guild.MaxCompletionTokens {
+	if guild.Prefix == CurrentConfig.Guild.Prefix && guild.Lang == CurrentConfig.Guild.Lang && guild.Model.Chat == CurrentConfig.Guild.Model.Chat && guild.Model.Image == CurrentConfig.Guild.Model.Image && guild.Reply == CurrentConfig.Guild.Reply && guild.MaxOutputTokens == CurrentConfig.Guild.MaxOutputTokens {
 		return ResetGuild(id, guild)
 	}
 
