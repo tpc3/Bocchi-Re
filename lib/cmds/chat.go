@@ -157,7 +157,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 					loc.Type = "approximate"
 					request.Tools[0].OfWebSearch.UserLocation = loc
 				}
-			} else if !(strings.Contains(modelstr, "gpt-5.2") && reasoning_effort != "none") {
+			} else if !skipSamplingParams(modelstr, reasoning_effort) {
 				if temperature != 0.0 {
 					request.Temperature = openai.Float(float64(temperature))
 				}
@@ -283,7 +283,7 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 				loc.Type = "approximate"
 				request.Tools[0].OfWebSearch.UserLocation = loc
 			}
-		} else if !(strings.Contains(modelstr, "gpt-5.2") && reasoning_effort != "none") {
+		} else if !skipSamplingParams(modelstr, reasoning_effort) {
 			if temperature != 0.0 {
 				request.Temperature = openai.Float(float64(temperature))
 			}
@@ -429,7 +429,7 @@ func goBackMessage(request responses.ResponseNewParams, msgInfo *embed.MsgInfo, 
 		content, modelstr, systemstr, imageurl, detail, reasoning_effort, _, _, temperature, top_p, _, max_output_tokens, _, _ := splitChatMsg(&trimmed, msgInfo, guild, &request, &search)
 
 		// Setting parameter
-		if !search && !(strings.Contains(modelstr, "gpt-5.2") && reasoning_effort != "none") {
+		if !search && !skipSamplingParams(modelstr, reasoning_effort) {
 			if temperature != 1.0 && request.Temperature == openai.Float(1.0) {
 				request.Temperature = openai.Float(temperature)
 			}
@@ -641,16 +641,33 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 	if modelstr != guild.Model.Chat || modelstr != "" {
 		request.Model = modelstr
 	}
-	if modelstr == "gpt-4o-search-preview" || modelstr == "gpt-4o-mini-search-preview" {
+	if modelstr == "gpt-4o-search-preview" || modelstr == "gpt-4o-mini-search-preview" || modelstr == "gpt-5-search-api" {
 		*search = true
 	}
-	if (modelstr != "gpt-5-pro" && reasoning_effort == "xhigh") || ((modelstr != "gpt-5.1" && modelstr != "gpt-5.2") && reasoning_effort == "none") {
+	if (!supportsXHighReasoning(modelstr) && reasoning_effort == "xhigh") || (!supportsNoReasoning(modelstr) && reasoning_effort == "none") {
 		embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.Invalid)
 		err = errors.New("invalid reasoning effort")
 		return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, err
 	}
 
 	return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, err
+}
+
+func skipSamplingParams(modelstr string, reasoning_effort string) bool {
+	return supportsNoReasoning(modelstr) && reasoning_effort != "none"
+}
+
+func supportsNoReasoning(modelstr string) bool {
+	return strings.HasPrefix(modelstr, "gpt-5.1") ||
+		strings.HasPrefix(modelstr, "gpt-5.2") ||
+		strings.HasPrefix(modelstr, "gpt-5.4") ||
+		strings.HasPrefix(modelstr, "gpt-5.5")
+}
+
+func supportsXHighReasoning(modelstr string) bool {
+	return strings.HasPrefix(modelstr, "gpt-5-pro") ||
+		strings.HasPrefix(modelstr, "gpt-5.4") ||
+		strings.HasPrefix(modelstr, "gpt-5.5")
 }
 
 func RunApi(msgInfo *embed.MsgInfo, request responses.ResponseNewParams, content string, filter bool, search bool, start time.Time) {

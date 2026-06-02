@@ -19,6 +19,7 @@ import (
 )
 
 const Image = "image"
+const gptImage2 = "gpt-image-2"
 
 func ImageCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 	msgInfo.Session.MessageReactionAdd(msgInfo.OrgMsg.ChannelID, msgInfo.OrgMsg.ID, "🤔")
@@ -46,34 +47,33 @@ func ImageCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 	if size != "" {
 		if (!(size == "256x256" || size == "512x512" || size == "1024x1024") && request.Model == openai.CreateImageModelDallE2) ||
 			(!(size == "1024x1024" || size == "1792x1024" || size == "1024x1792") && request.Model == openai.CreateImageModelDallE3) ||
-			(!(size == "1024x1024" || size == "1536x1024" || size == "1024x1536") && request.Model == openai.CreateImageModelGptImage1) {
+			(!(size == "1024x1024" || size == "1536x1024" || size == "1024x1536") && isGptImageModel(request.Model)) {
 			embed.ErrorReply(msgInfo, request.Model+config.Lang[msgInfo.Lang].Error.NoSupportedSize)
 			return
 		}
 	} else if modelstr == openai.CreateImageModelDallE2 {
 		size = "512x512"
-	} else if modelstr == openai.CreateImageModelDallE3 || modelstr == openai.CreateImageModelGptImage1 {
+	} else if modelstr == openai.CreateImageModelDallE3 || isGptImageModel(modelstr) {
 		size = "1024x1024"
 	}
 	request.Size = size
 
 	// Quality cannot use with DALL-E-2
-	if quality == "" {
-		switch request.Model {
-		case openai.CreateImageModelDallE2:
+	if request.Model == openai.CreateImageModelDallE2 {
+		if quality != "" {
 			embed.WarningReply(msgInfo, config.Lang[msgInfo.Lang].Warning.NoSupportedParameter)
-		case openai.CreateImageModelDallE3:
-			if quality == "" {
-				request.Quality = "standard"
-			} else {
-				request.Quality = quality
-			}
-		case openai.CreateImageModelGptImage1:
-			if quality == "" {
-				request.Quality = "medium"
-			} else {
-				request.Quality = quality
-			}
+		}
+	} else if request.Model == openai.CreateImageModelDallE3 {
+		if quality == "" {
+			request.Quality = "standard"
+		} else {
+			request.Quality = quality
+		}
+	} else if isGptImageModel(request.Model) {
+		if quality == "" {
+			request.Quality = "medium"
+		} else {
+			request.Quality = quality
 		}
 	}
 
@@ -88,7 +88,7 @@ func ImageCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 
 	// Background and Moderation and Output Format and Output Compression can use GPT-Image-1 only.
 	if background != "" || moderation != "" || output_format != "" || output_compression != 0 {
-		if request.Model != openai.CreateImageModelGptImage1 {
+		if !isGptImageModel(request.Model) {
 			embed.WarningReply(msgInfo, config.Lang[msgInfo.Lang].Warning.NoSupportedParameter)
 		}
 		if background != "" {
@@ -105,7 +105,7 @@ func ImageCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 		}
 	}
 
-	if request.Model != openai.CreateImageModelGptImage1 {
+	if !isGptImageModel(request.Model) {
 		request.ResponseFormat = openai.CreateImageResponseFormatB64JSON
 	}
 
@@ -128,8 +128,7 @@ func ImageCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 	// Add usage to database
 	modelName := request.Model
 	var usageType string
-	switch modelName {
-	case openai.CreateImageModelDallE2:
+	if modelName == openai.CreateImageModelDallE2 {
 		switch request.Size {
 		case "256x256":
 			usageType = "dall-e-2-small"
@@ -138,7 +137,7 @@ func ImageCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 		case "1024x1024":
 			usageType = "dall-e-2-big"
 		}
-	case openai.CreateImageModelDallE3:
+	} else if modelName == openai.CreateImageModelDallE3 {
 		q := request.Quality
 		sz := request.Size
 		if strings.Contains(sz, "1792") {
@@ -146,18 +145,29 @@ func ImageCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 		} else {
 			usageType = "dall-e-3-" + q + "-square"
 		}
-	case openai.CreateImageModelGptImage1:
+	} else if isGptImageModel(modelName) {
 		if err := database.AddUsage(msgInfo.OrgMsg.GuildID, modelName, "prompt_tokens", response.Usage.InputTokensDetails.TextTokens); err != nil {
 			log.Println("DB追加エラー:", err)
 			embed.WarningReply(msgInfo, config.Lang[msgInfo.Lang].Warning.DataSaveError)
 		}
+		if strings.HasPrefix(modelName, gptImage2) {
+			if err := database.AddUsage(msgInfo.OrgMsg.GuildID, modelName, "input_tokens", response.Usage.InputTokens); err != nil {
+				log.Println("DB追加エラー:", err)
+				embed.WarningReply(msgInfo, config.Lang[msgInfo.Lang].Warning.DataSaveError)
+			}
+			if err := database.AddUsage(msgInfo.OrgMsg.GuildID, modelName, "output_tokens", response.Usage.OutputTokens); err != nil {
+				log.Println("DB追加エラー:", err)
+				embed.WarningReply(msgInfo, config.Lang[msgInfo.Lang].Warning.DataSaveError)
+			}
+		}
 
 		q := request.Quality
 		sz := request.Size
+		prefix := gptImageUsagePrefix(modelName)
 		if strings.Contains(sz, "1536") {
-			usageType = "gpt-image-1-" + q + "-rectangle"
+			usageType = prefix + "-" + q + "-rectangle"
 		} else {
-			usageType = "gpt-image-1-" + q + "-square"
+			usageType = prefix + "-" + q + "-square"
 		}
 	}
 
@@ -167,7 +177,7 @@ func ImageCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 	}
 
 	var fileName string
-	if request.Model == openai.CreateImageModelGptImage1 && output_format != "" {
+	if isGptImageModel(request.Model) && output_format != "" {
 		fileName = strconv.Itoa(int(response.Created)) + "." + output_format
 	} else {
 		fileName = strconv.Itoa(int(response.Created)) + ".png"
@@ -213,6 +223,17 @@ func ImageCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 
 	msgInfo.Session.MessageReactionRemove(msgInfo.OrgMsg.ChannelID, msgInfo.OrgMsg.ID, "🤔", msgInfo.Session.State.User.ID)
 	embed.ReplyEmbed(reply, msgInfo, msgEmbed)
+}
+
+func isGptImageModel(model string) bool {
+	return model == openai.CreateImageModelGptImage1 || strings.HasPrefix(model, gptImage2)
+}
+
+func gptImageUsagePrefix(model string) string {
+	if strings.HasPrefix(model, gptImage2) {
+		return gptImage2
+	}
+	return openai.CreateImageModelGptImage1
 }
 
 func splitImageMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, request *openai.ImageRequest) (string, string, string, string, string, string, string, string, int, error) {

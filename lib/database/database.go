@@ -211,6 +211,13 @@ func CalcCost(records []UsageRecord) float64 {
 			}
 
 		} else if modelInfo.Type == config.ModelTypeImage {
+			switch usageType {
+			case "input_tokens":
+				totalUSD += (usageCount / 1000000.0) * modelInfo.InputCost
+			case "output_tokens":
+				totalUSD += (usageCount / 1000000.0) * modelInfo.OutputCost
+			}
+
 			if modelInfo.Key == openai.CreateImageModelGptImage1 && usageType == "gpt-image-text" {
 				totalUSD += (usageCount / 1000000.0) * modelInfo.InputCost
 			}
