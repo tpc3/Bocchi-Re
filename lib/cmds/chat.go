@@ -49,6 +49,9 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 	if err != nil {
 		if err.Error() == "no model" || err.Error() == "invalid reasoning effort" {
 			return
+		} else if err.Error() == "invalid arg" {
+			embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.SubCmd)
+			return
 		} else if content == "" {
 			embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.SubCmd)
 			return
@@ -541,7 +544,10 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 		user_location                                                                         = map[string]string{}
 	)
 
-	str := strings.Split(*msg, " ")
+	str, err := utils.SplitCommandArgs(*msg)
+	if err != nil {
+		return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, err
+	}
 
 	// setting default value
 	filter = false
@@ -558,48 +564,99 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 			case "-f":
 				filter = true
 			case "-m":
-				modelstr = str[i+1]
+				val, ok := utils.CommandArgValue(str, i)
+				if !ok {
+					err = utils.ErrInvalidArg
+					return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, err
+				}
+				modelstr = val
 				i += 1
 			case "-s":
-				systemstr = str[i+1]
+				val, ok := utils.CommandArgValue(str, i)
+				if !ok {
+					err = utils.ErrInvalidArg
+					return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, err
+				}
+				systemstr = val
 				i += 1
 			case "-i":
-				imageurl = str[i+1]
+				val, ok := utils.CommandArgValue(str, i)
+				if !ok {
+					err = utils.ErrInvalidArg
+					return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, err
+				}
+				imageurl = val
 				i += 1
 			case "-d":
-				if str[i+1] == "high" || str[i+1] == "low" {
-					detail = str[i+1]
+				val, ok := utils.CommandArgValue(str, i)
+				if !ok {
+					err = utils.ErrInvalidArg
+					return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, err
+				}
+				if val == "high" || val == "low" {
+					detail = val
 				} else {
 					detail = "miss"
 				}
 				i += 1
 			case "-t":
-				tempVal, parseErr := strconv.ParseFloat(str[i+1], 64)
+				val, ok := utils.CommandArgValue(str, i)
+				if !ok {
+					err = utils.ErrInvalidArg
+					return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, err
+				}
+				tempVal, parseErr := strconv.ParseFloat(val, 64)
 				if parseErr != nil || tempVal < 0 || tempVal > 2 {
-					temperature = -1.0
+					err = utils.ErrInvalidArg
+					return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, err
 				} else {
 					temperature = tempVal
 				}
-				err = parseErr
 				i += 1
 			case "-p":
-				topVal, parseErr := strconv.ParseFloat(str[i+1], 64)
+				val, ok := utils.CommandArgValue(str, i)
+				if !ok {
+					err = utils.ErrInvalidArg
+					return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, err
+				}
+				topVal, parseErr := strconv.ParseFloat(val, 64)
 				if parseErr != nil || topVal < 0 || topVal > 1 {
-					top_p = -1.0
+					err = utils.ErrInvalidArg
+					return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, err
 				} else {
 					top_p = topVal
 				}
-				err = parseErr
 				i += 1
 			case "-l":
-				repnum, err = strconv.Atoi(str[i+1])
+				val, ok := utils.CommandArgValue(str, i)
+				if !ok {
+					err = utils.ErrInvalidArg
+					return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, err
+				}
+				repnum, err = strconv.Atoi(val)
+				if err != nil {
+					return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, utils.ErrInvalidArg
+				}
 				i += 1
 			case "--max_output_tokens":
-				max_output_tokens, err = strconv.Atoi(str[i+1])
+				val, ok := utils.CommandArgValue(str, i)
+				if !ok {
+					err = utils.ErrInvalidArg
+					return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, err
+				}
+				max_output_tokens, err = strconv.Atoi(val)
+				if err != nil || max_output_tokens < 0 {
+					return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, utils.ErrInvalidArg
+				}
 				i += 1
 			case "--reasoning_effort":
-				if str[i+1] == "none" || str[i+1] == "minimal" || str[i+1] == "low" || str[i+1] == "medium" || str[i+1] == "high" || str[i+1] == "xhigh" {
-					reasoning_effort = str[i+1]
+				val, ok := utils.CommandArgValue(str, i)
+				if !ok {
+					err = utils.ErrInvalidArg
+					return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, err
+				}
+				if val == "none" || val == "minimal" || val == "low" || val == "medium" || val == "high" || val == "xhigh" {
+					reasoning_effort = val
 					i += 1
 				} else {
 					reasoning_effort = "miss"
@@ -607,15 +664,39 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 			case "--websearch":
 				*search = true
 			case "--search_context_size":
-				search_context_size = str[i+1]
+				val, ok := utils.CommandArgValue(str, i)
+				if !ok {
+					err = utils.ErrInvalidArg
+					return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, err
+				}
+				if val == "low" || val == "medium" || val == "high" {
+					search_context_size = val
+				} else {
+					err = utils.ErrInvalidArg
+					return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, err
+				}
 				i += 1
 			case "--user_location":
-				if str[i+1] == "city" || str[i+1] == "country" || str[i+1] == "region" {
-					user_location = map[string]string{str[i+1]: str[i+2]}
-				} else if str[i+1] == "type" {
-					user_location = map[string]string{str[i+1]: "approximate"}
+				key, ok := utils.CommandArgValue(str, i)
+				if !ok {
+					err = utils.ErrInvalidArg
+					return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, err
 				}
-				i += 2
+				if key == "city" || key == "country" || key == "region" || key == "timezone" {
+					val, ok := utils.CommandArgValue(str, i+1)
+					if !ok {
+						err = utils.ErrInvalidArg
+						return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, err
+					}
+					user_location[key] = val
+					i += 2
+				} else if key == "type" {
+					user_location[key] = "approximate"
+					i += 1
+				} else {
+					err = utils.ErrInvalidArg
+					return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, err
+				}
 			default:
 				content += str[i] + " "
 				prm = false
@@ -680,7 +761,7 @@ func RunApi(msgInfo *embed.MsgInfo, request responses.ResponseNewParams, content
 	}
 
 	// Verify parameter
-	if request.Reasoning.Effort == "miss" && request.Temperature == openai.Float(-1.0) && request.TopP == openai.Float(-1.0) {
+	if request.Reasoning.Effort == "miss" || request.Temperature == openai.Float(-1.0) || request.TopP == openai.Float(-1.0) {
 		embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.SubCmd)
 		return
 	}

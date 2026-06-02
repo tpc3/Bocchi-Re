@@ -16,6 +16,7 @@ import (
 	"github.com/tpc3/Bocchi-Re/lib/config"
 	"github.com/tpc3/Bocchi-Re/lib/database"
 	"github.com/tpc3/Bocchi-Re/lib/embed"
+	"github.com/tpc3/Bocchi-Re/lib/utils"
 )
 
 const Image = "image"
@@ -66,14 +67,20 @@ func ImageCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 	} else if request.Model == openai.CreateImageModelDallE3 {
 		if quality == "" {
 			request.Quality = "standard"
-		} else {
+		} else if quality == "standard" || quality == "hd" {
 			request.Quality = quality
+		} else {
+			embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.SubCmd)
+			return
 		}
 	} else if isGptImageModel(request.Model) {
 		if quality == "" {
 			request.Quality = "medium"
-		} else {
+		} else if quality == "low" || quality == "medium" || quality == "high" {
 			request.Quality = quality
+		} else {
+			embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.SubCmd)
+			return
 		}
 	}
 
@@ -244,7 +251,10 @@ func splitImageMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, requ
 		err                                                                            error
 	)
 
-	str := strings.Split(*msg, " ")
+	str, err := utils.SplitCommandArgs(*msg)
+	if err != nil {
+		return content, modelstr, quality, size, style, background, moderation, output_format, output_compression, err
+	}
 	prm = true
 	modelstr = guild.Model.Image
 
@@ -252,53 +262,93 @@ func splitImageMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, requ
 		if strings.HasPrefix(str[i], "-") && prm {
 			switch str[i] {
 			case "-m":
-				modelstr = str[i+1]
+				val, ok := utils.CommandArgValue(str, i)
+				if !ok {
+					err = utils.ErrInvalidArg
+					return content, modelstr, quality, size, style, background, moderation, output_format, output_compression, err
+				}
+				modelstr = val
 				i += 1
 			case "--quality":
-				if str[i+1] == "standard" || str[i+1] == "hd" || str[i+1] == "high" || str[i+1] == "medium" || str[i+1] == "low" {
-					quality = str[i+1]
+				val, ok := utils.CommandArgValue(str, i)
+				if !ok {
+					err = utils.ErrInvalidArg
+					return content, modelstr, quality, size, style, background, moderation, output_format, output_compression, err
+				}
+				if val == "standard" || val == "hd" || val == "high" || val == "medium" || val == "low" {
+					quality = val
 				} else {
 					invalid = true
 				}
 				i += 1
 			case "--size":
-				if str[i+1] == "256x256" || str[i+1] == "512x512" || str[i+1] == "1024x1024" || str[i+1] == "1792x1024" || str[i+1] == "1024x1792" || str[i+1] == "1536x1024" || str[i+1] == "1024x1536" {
-					size = str[i+1]
+				val, ok := utils.CommandArgValue(str, i)
+				if !ok {
+					err = utils.ErrInvalidArg
+					return content, modelstr, quality, size, style, background, moderation, output_format, output_compression, err
+				}
+				if val == "256x256" || val == "512x512" || val == "1024x1024" || val == "1792x1024" || val == "1024x1792" || val == "1536x1024" || val == "1024x1536" {
+					size = val
 				} else {
 					invalid = true
 				}
 				i += 1
 			case "--style":
-				if str[i+1] == "vivid" || str[i+1] == "natural" {
-					style = str[i+1]
+				val, ok := utils.CommandArgValue(str, i)
+				if !ok {
+					err = utils.ErrInvalidArg
+					return content, modelstr, quality, size, style, background, moderation, output_format, output_compression, err
+				}
+				if val == "vivid" || val == "natural" {
+					style = val
 				} else {
 					invalid = true
 				}
 				i += 1
 			case "--background":
-				if str[i+1] == "transparent" || str[i+1] == "opaque" {
-					background = str[i+1]
+				val, ok := utils.CommandArgValue(str, i)
+				if !ok {
+					err = utils.ErrInvalidArg
+					return content, modelstr, quality, size, style, background, moderation, output_format, output_compression, err
+				}
+				if val == "transparent" || val == "opaque" {
+					background = val
 				} else {
 					invalid = true
 				}
 				i += 1
 			case "--moderation":
-				if str[i+1] == "low" {
-					moderation = str[i+1]
+				val, ok := utils.CommandArgValue(str, i)
+				if !ok {
+					err = utils.ErrInvalidArg
+					return content, modelstr, quality, size, style, background, moderation, output_format, output_compression, err
+				}
+				if val == "low" {
+					moderation = val
 				} else {
 					invalid = true
 				}
 				i += 1
 			case "--output_format":
-				if str[i+1] == "png" || str[i+1] == "jpeg" || str[i+1] == "webp" {
-					output_format = str[i+1]
+				val, ok := utils.CommandArgValue(str, i)
+				if !ok {
+					err = utils.ErrInvalidArg
+					return content, modelstr, quality, size, style, background, moderation, output_format, output_compression, err
+				}
+				if val == "png" || val == "jpeg" || val == "webp" {
+					output_format = val
 				} else {
 					invalid = true
 				}
 				i += 1
 			case "--output_compression":
-				oc, e := strconv.Atoi(str[i+1])
-				if e == nil {
+				val, ok := utils.CommandArgValue(str, i)
+				if !ok {
+					err = utils.ErrInvalidArg
+					return content, modelstr, quality, size, style, background, moderation, output_format, output_compression, err
+				}
+				oc, e := strconv.Atoi(val)
+				if e == nil && oc >= 0 && oc <= 100 {
 					output_compression = oc
 				} else {
 					invalid = true

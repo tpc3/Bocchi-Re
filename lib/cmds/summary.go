@@ -15,6 +15,7 @@ import (
 
 	"github.com/tpc3/Bocchi-Re/lib/config"
 	"github.com/tpc3/Bocchi-Re/lib/embed"
+	"github.com/tpc3/Bocchi-Re/lib/utils"
 )
 
 const Summary = "summary"
@@ -125,18 +126,37 @@ func splitSummaryMsg(msg *string) (string, string, int, int, error) {
 	)
 	limit = 50
 
-	str := strings.Split(*msg, " ")
+	str, err := utils.SplitCommandArgs(*msg)
+	if err != nil {
+		return before, after, limit, max_output_tokens, err
+	}
 	for i := 0; i < len(str); i++ {
 		if strings.HasPrefix(str[i], "-") {
 			switch str[i] {
 			case "-b":
-				before = str[i+1]
+				val, ok := utils.CommandArgValue(str, i)
+				if !ok {
+					return before, after, limit, max_output_tokens, utils.ErrInvalidArg
+				}
+				before = val
 			case "-a":
-				after = str[i+1]
+				val, ok := utils.CommandArgValue(str, i)
+				if !ok {
+					return before, after, limit, max_output_tokens, utils.ErrInvalidArg
+				}
+				after = val
 			case "-l":
-				limit, err = strconv.Atoi(str[i+1])
+				val, ok := utils.CommandArgValue(str, i)
+				if !ok {
+					return before, after, limit, max_output_tokens, utils.ErrInvalidArg
+				}
+				limit, err = strconv.Atoi(val)
 			case "--max_output_tokens":
-				max_output_tokens, err = strconv.Atoi(str[i+1])
+				val, ok := utils.CommandArgValue(str, i)
+				if !ok {
+					return before, after, limit, max_output_tokens, utils.ErrInvalidArg
+				}
+				max_output_tokens, err = strconv.Atoi(val)
 			}
 			i++
 		}
