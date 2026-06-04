@@ -9,14 +9,14 @@ Discord Bot can use AI made by OpenAI on Discord.
 
 ## Simple
 
-1. [Download config.template.yaml](https://raw.githubusercontent.com/tpc3/Vanilla/master/config.template.yaml)
+1. [Download config.template.yaml](https://raw.githubusercontent.com/tpc3/Bocchi-Re/master/config.template.yaml)
 2. Enter your discord token and OpenAI token to `config.template.yaml`
 3. Change the name `config.template.yaml` to `config.yaml`
 4. `go run main.go`
 
 ## Docker
 
-1. [Download config.template.yaml](https://raw.githubusercontent.com/tpc3/Vanilla/master/config.template.yaml)
+1. [Download config.template.yaml](https://raw.githubusercontent.com/tpc3/Bocchi-Re/master/config.template.yaml)
 2. Enter your discord token and OpenAI token to `config.template.yaml`
 3. Change the name `config.template.yaml` to `config.yaml`
 3. `docker run --rm -it -v $(PWD):/data ghcr.io/tpc3/bocchi-re`
