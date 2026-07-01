@@ -661,7 +661,7 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 				} else {
 					reasoning_effort = "miss"
 				}
-			case "--websearch":
+			case "--search":
 				*search = true
 			case "--search_context_size":
 				val, ok := utils.CommandArgValue(str, i)
