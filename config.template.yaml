@@ -12,7 +12,7 @@ guild:
   lang: japanese
   model:
     chat: gpt-3.5-turbo
-    image: dall-e-2
+    image: gpt-image-2
   reply: 3
   MaxOutputTokens: 1000
 user_blacklist:
