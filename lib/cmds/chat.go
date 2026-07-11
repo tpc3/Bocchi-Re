@@ -655,7 +655,7 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 					err = utils.ErrInvalidArg
 					return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, err
 				}
-				if val == "none" || val == "minimal" || val == "low" || val == "medium" || val == "high" || val == "xhigh" {
+				if val == "none" || val == "minimal" || val == "low" || val == "medium" || val == "high" || val == "xhigh" || val == "max" {
 					reasoning_effort = val
 					i += 1
 				} else {
@@ -725,7 +725,9 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 	if modelstr == "gpt-4o-search-preview" || modelstr == "gpt-4o-mini-search-preview" || modelstr == "gpt-5-search-api" {
 		*search = true
 	}
-	if (!supportsXHighReasoning(modelstr) && reasoning_effort == "xhigh") || (!supportsNoReasoning(modelstr) && reasoning_effort == "none") {
+	if (!supportsXHighReasoning(modelstr) && reasoning_effort == "xhigh") ||
+		(!supportsNoReasoning(modelstr) && reasoning_effort == "none") ||
+		(!supportsMaxReasoning(modelstr) && reasoning_effort == "max") {
 		embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.Invalid)
 		err = errors.New("invalid reasoning effort")
 		return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, err
@@ -742,13 +744,19 @@ func supportsNoReasoning(modelstr string) bool {
 	return strings.HasPrefix(modelstr, "gpt-5.1") ||
 		strings.HasPrefix(modelstr, "gpt-5.2") ||
 		strings.HasPrefix(modelstr, "gpt-5.4") ||
-		strings.HasPrefix(modelstr, "gpt-5.5")
+		strings.HasPrefix(modelstr, "gpt-5.5") ||
+		strings.HasPrefix(modelstr, "gpt-5.6")
 }
 
 func supportsXHighReasoning(modelstr string) bool {
 	return strings.HasPrefix(modelstr, "gpt-5-pro") ||
 		strings.HasPrefix(modelstr, "gpt-5.4") ||
-		strings.HasPrefix(modelstr, "gpt-5.5")
+		strings.HasPrefix(modelstr, "gpt-5.5") ||
+		strings.HasPrefix(modelstr, "gpt-5.6")
+}
+
+func supportsMaxReasoning(modelstr string) bool {
+	return strings.HasPrefix(modelstr, "gpt-5.6")
 }
 
 func RunApi(msgInfo *embed.MsgInfo, request responses.ResponseNewParams, content string, filter bool, search bool, start time.Time) {

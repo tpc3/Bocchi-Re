@@ -132,6 +132,22 @@ func LoadGuild(id *string) (*Guild, error) {
 		return nil, err
 	}
 
+	modelsUpdated := false
+	if _, exists := AllModels[guild.Model.Chat]; !exists {
+		guild.Model.Chat = CurrentConfig.Guild.Model.Chat
+		modelsUpdated = true
+	}
+	if _, exists := AllModels[guild.Model.Image]; !exists {
+		guild.Model.Image = CurrentConfig.Guild.Model.Image
+		modelsUpdated = true
+	}
+	if modelsUpdated {
+		if err := SaveGuild(id, &guild); err != nil {
+			return nil, err
+		}
+		return &guild, nil
+	}
+
 	cachedGuild.Set(*id, &guild, cache.DefaultExpiration)
 	return &guild, nil
 }
