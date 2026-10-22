@@ -11,7 +11,7 @@ guild:
   prefix: b.
   lang: japanese
   model:
-    chat: gpt-3.5-turbo
+    chat: gpt-5.6-terra
     image: gpt-image-2
   reply: 3
   MaxOutputTokens: 1000

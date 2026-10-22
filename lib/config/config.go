@@ -62,6 +62,17 @@ func init() {
 		log.Fatal("Config parse failed: ", err)
 	}
 
+	chatModel := CurrentConfig.Guild.Model.Chat
+	imageModel := CurrentConfig.Guild.Model.Image
+	var chatMigrated, imageMigrated bool
+	CurrentConfig.Guild.Model, chatMigrated, imageMigrated = migrateUnavailableModels(CurrentConfig.Guild.Model)
+	if chatMigrated {
+		log.Printf("Warning: unavailable guild.model.chat %q migrated to %q", chatModel, CurrentConfig.Guild.Model.Chat)
+	}
+	if imageMigrated {
+		log.Printf("Warning: unavailable guild.model.image %q migrated to %q", imageModel, CurrentConfig.Guild.Model.Image)
+	}
+
 	// Verify
 	if CurrentConfig.Debug {
 		log.Print("Debug is enabled")
@@ -83,6 +94,29 @@ func init() {
 	}
 
 	cachedGuild = cache.New(24*time.Hour, 1*time.Hour)
+}
+
+func migrateUnavailableModels(model Model) (Model, bool, bool) {
+	migrated := model
+	chatMigrated := migrated.Chat != ""
+	if chatMigrated {
+		if _, exists := AllModels[migrated.Chat]; !exists {
+			migrated.Chat = DefaultChatModel
+		} else {
+			chatMigrated = false
+		}
+	}
+
+	imageMigrated := migrated.Image != ""
+	if imageMigrated {
+		if _, exists := AllModels[migrated.Image]; !exists {
+			migrated.Image = DefaultImageModel
+		} else {
+			imageMigrated = false
+		}
+	}
+
+	return migrated, chatMigrated, imageMigrated
 }
 
 func VerifyGuild(guild *Guild) error {
