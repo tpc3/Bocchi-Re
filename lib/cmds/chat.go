@@ -32,6 +32,8 @@ import (
 
 const Chat = "chat"
 
+var reasoningModelRegex = regexp.MustCompile(`(^o\d.*|^gpt-5.*|^gpt-6.*)`)
+
 func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 	var search bool
 	msgInfo.Session.MessageReactionAdd(msgInfo.OrgMsg.ChannelID, msgInfo.OrgMsg.ID, "🤔")
@@ -167,6 +169,8 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 				if top_p != 0.0 {
 					request.TopP = openai.Float(float64(top_p))
 				}
+			} else {
+				clearSamplingParams(&request)
 			}
 			if max_output_tokens != 0 {
 				request.MaxOutputTokens = openai.Int(int64(max_output_tokens))
@@ -293,6 +297,8 @@ func ChatCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 			if top_p != 0.0 {
 				request.TopP = openai.Float(float64(top_p))
 			}
+		} else {
+			clearSamplingParams(&request)
 		}
 		if max_output_tokens != 0 {
 			request.MaxOutputTokens = openai.Int(int64(max_output_tokens))
@@ -439,6 +445,8 @@ func goBackMessage(request responses.ResponseNewParams, msgInfo *embed.MsgInfo, 
 			if top_p != 1.0 && request.TopP == openai.Float(1.0) {
 				request.TopP = openai.Float(top_p)
 			}
+		} else if !search {
+			clearSamplingParams(&request)
 		}
 		if max_output_tokens != 0 && request.MaxOutputTokens == openai.Int(int64(guild.MaxOutputTokens)) {
 			request.MaxOutputTokens = openai.Int(int64(max_output_tokens))
@@ -655,7 +663,7 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 					err = utils.ErrInvalidArg
 					return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, err
 				}
-				if val == "none" || val == "minimal" || val == "low" || val == "medium" || val == "high" || val == "xhigh" {
+				if val == "none" || val == "minimal" || val == "low" || val == "medium" || val == "high" || val == "xhigh" || val == "max" {
 					reasoning_effort = val
 					i += 1
 				} else {
@@ -725,7 +733,10 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 	if modelstr == "gpt-4o-search-preview" || modelstr == "gpt-4o-mini-search-preview" || modelstr == "gpt-5-search-api" {
 		*search = true
 	}
-	if (!supportsXHighReasoning(modelstr) && reasoning_effort == "xhigh") || (!supportsNoReasoning(modelstr) && reasoning_effort == "none") {
+	if (!supportsXHighReasoning(modelstr) && reasoning_effort == "xhigh") ||
+		(!supportsNoReasoning(modelstr) && reasoning_effort == "none") ||
+		(!supportsMaxReasoning(modelstr) && reasoning_effort == "max") ||
+		(rejectsMinimalReasoning(modelstr) && reasoning_effort == "minimal") {
 		embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.Invalid)
 		err = errors.New("invalid reasoning effort")
 		return content, modelstr, systemstr, imageurl, detail, reasoning_effort, search_context_size, user_location, temperature, top_p, repnum, max_output_tokens, filter, err
@@ -735,27 +746,49 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 }
 
 func skipSamplingParams(modelstr string, reasoning_effort string) bool {
-	return supportsNoReasoning(modelstr) && reasoning_effort != "none"
+	return (supportsNoReasoning(modelstr) || isGPT6Model(modelstr)) && reasoning_effort != "none"
+}
+
+func clearSamplingParams(request *responses.ResponseNewParams) {
+	request.Temperature = responses.ResponseNewParams{}.Temperature
+	request.TopP = responses.ResponseNewParams{}.TopP
 }
 
 func supportsNoReasoning(modelstr string) bool {
 	return strings.HasPrefix(modelstr, "gpt-5.1") ||
 		strings.HasPrefix(modelstr, "gpt-5.2") ||
 		strings.HasPrefix(modelstr, "gpt-5.4") ||
-		strings.HasPrefix(modelstr, "gpt-5.5")
+		strings.HasPrefix(modelstr, "gpt-5.5") ||
+		strings.HasPrefix(modelstr, "gpt-5.6") ||
+		strings.HasPrefix(modelstr, "gpt-6.1-terra") ||
+		strings.HasPrefix(modelstr, "gpt-6-sol") ||
+		strings.HasPrefix(modelstr, "gpt-6-luna")
 }
 
 func supportsXHighReasoning(modelstr string) bool {
 	return strings.HasPrefix(modelstr, "gpt-5-pro") ||
 		strings.HasPrefix(modelstr, "gpt-5.4") ||
-		strings.HasPrefix(modelstr, "gpt-5.5")
+		strings.HasPrefix(modelstr, "gpt-5.5") ||
+		strings.HasPrefix(modelstr, "gpt-5.6") ||
+		isGPT6Model(modelstr)
+}
+
+func supportsMaxReasoning(modelstr string) bool {
+	return strings.HasPrefix(modelstr, "gpt-5.6") || isGPT6Model(modelstr)
+}
+
+func rejectsMinimalReasoning(modelstr string) bool {
+	return strings.HasPrefix(modelstr, "gpt-5.6") || isGPT6Model(modelstr)
+}
+
+func isGPT6Model(modelstr string) bool {
+	return strings.HasPrefix(modelstr, "gpt-6")
 }
 
 func RunApi(msgInfo *embed.MsgInfo, request responses.ResponseNewParams, content string, filter bool, search bool, start time.Time) {
 
 	// Verify reasoning effort
-	re := regexp.MustCompile(`(^o\d.*|^gpt-5.*)`)
-	if request.Reasoning.Effort != "" && !re.Match([]byte(request.Model)) {
+	if request.Reasoning.Effort != "" && !reasoningModelRegex.MatchString(request.Model) {
 		embed.WarningReply(msgInfo, config.Lang[msgInfo.Lang].Warning.NoSupportedParameter)
 		request.Reasoning.Effort = ""
 	}
@@ -833,9 +866,9 @@ func RunApi(msgInfo *embed.MsgInfo, request responses.ResponseNewParams, content
 		msgEmbed.Color = embed.ColorGPT3
 	} else if strings.Contains(resp.Model, "gpt-4") {
 		msgEmbed.Color = embed.ColorGPT4
-	} else if strings.Contains(resp.Model, "gpt-5") {
+	} else if strings.Contains(resp.Model, "gpt-5") || strings.Contains(resp.Model, "gpt-6") {
 		msgEmbed.Color = embed.ColorGPT5
-	} else if re.MatchString(resp.Model) {
+	} else if reasoningModelRegex.MatchString(resp.Model) {
 		msgEmbed.Color = embed.Color_o_series
 	}
 

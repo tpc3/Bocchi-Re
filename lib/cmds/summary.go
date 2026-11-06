@@ -98,7 +98,7 @@ func SummaryCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 	}
 
 	request := responses.ResponseNewParams{
-		Model:           "gpt-5.4-mini",
+		Model:           "gpt-6-luna",
 		MaxOutputTokens: openai.Int(int64(max_output_tokens)),
 		Input: responses.ResponseNewParamsInputUnion{
 			OfString: openai.String(finalText),

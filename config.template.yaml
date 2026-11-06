@@ -11,8 +11,8 @@ guild:
   prefix: b.
   lang: japanese
   model:
-    chat: gpt-3.5-turbo
-    image: gpt-image-2
+    chat: gpt-6.1-terra
+    image: gpt-image-2.6-sunburst
   reply: 3
   MaxOutputTokens: 1000
 user_blacklist:
