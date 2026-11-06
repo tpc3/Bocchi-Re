@@ -24,6 +24,14 @@ func TestGPT6ReasoningSupport(t *testing.T) {
 			skipSampling:   true,
 		},
 		{
+			model:          "gpt-6.1-terra",
+			supportsNone:   true,
+			supportsXHigh:  true,
+			supportsMax:    true,
+			rejectsMinimal: true,
+			skipSampling:   true,
+		},
+		{
 			model:          "gpt-6.1-sol",
 			supportsXHigh:  true,
 			supportsMax:    true,
@@ -82,7 +90,7 @@ func TestGPT56MinimalReasoningIsRejected(t *testing.T) {
 }
 
 func TestGPT6ReasoningModelsAreRecognized(t *testing.T) {
-	for _, model := range []string{"gpt-6-astra", "gpt-6.1-sol", "gpt-6-sol", "gpt-6-luna"} {
+	for _, model := range []string{"gpt-6-astra", "gpt-6.1-terra", "gpt-6.1-sol", "gpt-6-sol", "gpt-6-luna"} {
 		if !reasoningModelRegex.MatchString(model) {
 			t.Errorf("reasoningModelRegex does not recognize %q", model)
 		}

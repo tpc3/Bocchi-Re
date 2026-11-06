@@ -7,8 +7,8 @@ const (
 	ModelTypeText  ModelType = "text"
 	ModelTypeImage ModelType = "image"
 
-	DefaultChatModel  = "gpt-5.6-terra"
-	DefaultImageModel = "gpt-image-2"
+	DefaultChatModel  = "gpt-6.1-terra"
+	DefaultImageModel = "gpt-image-2.6-sunburst"
 )
 
 // Structure to consolidate model information
@@ -42,6 +42,15 @@ var AllModels = map[string]ModelInfo{
 		Type:          ModelTypeText,
 		InputCost:     10.0,
 		OutputCost:    50.0,
+		SupportVision: true,
+		ImageCost:     nil,
+	},
+	"gpt-6.1-terra": {
+		Key:           "gpt-6.1-terra",
+		Manufacturer:  "OpenAI",
+		Type:          ModelTypeText,
+		InputCost:     1.0,
+		OutputCost:    5.0,
 		SupportVision: true,
 		ImageCost:     nil,
 	},
@@ -565,6 +574,21 @@ var AllModels = map[string]ModelInfo{
 			"high-rectangle":   0,
 		},
 	},
+	"gpt-image-2.6-flare": {
+		Key:          "gpt-image-2.6-flare",
+		Manufacturer: "OpenAI",
+		Type:         ModelTypeImage,
+		InputCost:    5,
+		OutputCost:   30,
+		ImageCost: map[string]float64{
+			"low-square":       0,
+			"low-rectangle":    0,
+			"medium-square":    0,
+			"medium-rectangle": 0,
+			"high-square":      0,
+			"high-rectangle":   0,
+		},
+	},
 	"gpt-image-2.5-flare-2026-09-08": {
 		Key:          "gpt-image-2.5-flare-2026-09-08",
 		Manufacturer: "OpenAI",
@@ -582,6 +606,21 @@ var AllModels = map[string]ModelInfo{
 	},
 	"gpt-image-2.5-sunburst": {
 		Key:          "gpt-image-2.5-sunburst",
+		Manufacturer: "OpenAI",
+		Type:         ModelTypeImage,
+		InputCost:    5,
+		OutputCost:   30,
+		ImageCost: map[string]float64{
+			"low-square":       0,
+			"low-rectangle":    0,
+			"medium-square":    0,
+			"medium-rectangle": 0,
+			"high-square":      0,
+			"high-rectangle":   0,
+		},
+	},
+	"gpt-image-2.6-sunburst": {
+		Key:          "gpt-image-2.6-sunburst",
 		Manufacturer: "OpenAI",
 		Type:         ModelTypeImage,
 		InputCost:    5,

@@ -14,6 +14,9 @@ RUN go build -tags musl -ldflags "-s -w" -o Bocchi-Re .
 FROM alpine
 RUN apk add --no-cache ca-certificates
 
+ARG VCS_REF=unknown
+LABEL org.opencontainers.image.revision=$VCS_REF
+
 COPY --from=build /go/src/Bocchi-Re/Bocchi-Re /bin/Bocchi-Re
 WORKDIR /data
 CMD ["/bin/Bocchi-Re"]

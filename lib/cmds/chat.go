@@ -669,7 +669,7 @@ func splitChatMsg(msg *string, msgInfo *embed.MsgInfo, guild config.Guild, reque
 				} else {
 					reasoning_effort = "miss"
 				}
-			case "--websearch":
+			case "--search":
 				*search = true
 			case "--search_context_size":
 				val, ok := utils.CommandArgValue(str, i)
@@ -760,6 +760,7 @@ func supportsNoReasoning(modelstr string) bool {
 		strings.HasPrefix(modelstr, "gpt-5.4") ||
 		strings.HasPrefix(modelstr, "gpt-5.5") ||
 		strings.HasPrefix(modelstr, "gpt-5.6") ||
+		strings.HasPrefix(modelstr, "gpt-6.1-terra") ||
 		strings.HasPrefix(modelstr, "gpt-6-sol") ||
 		strings.HasPrefix(modelstr, "gpt-6-luna")
 }

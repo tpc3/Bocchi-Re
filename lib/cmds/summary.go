@@ -1,6 +1,7 @@
 package cmds
 
 import (
+	"cmp"
 	"fmt"
 	"log"
 	"slices"
@@ -8,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bwmarrin/discordgo"
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/responses"
 	"github.com/pkoukk/tiktoken-go"
@@ -25,22 +27,24 @@ func SummaryCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 
 	start := time.Now()
 
-	before, after, limit, max_output_tokens, err := splitSummaryMsg(msg)
-	if err != nil || limit <= 0 || limit > 100 || (before != "" && after != "") {
+	before, after, channelID, limit, max_output_tokens, err := splitSummaryMsg(msg)
+	if err != nil || limit <= 0 || (before != "" && after != "") {
 		embed.ErrorReply(msgInfo, config.Lang[msgInfo.Lang].Error.Invalid)
 		return
+	}
+	if channelID == "" {
+		channelID = msgInfo.OrgMsg.ChannelID
 	}
 
 	if max_output_tokens == 0 {
 		max_output_tokens = guild.MaxOutputTokens
 	}
 
-	msgLog, err := msgInfo.Session.ChannelMessages(msgInfo.OrgMsg.ChannelID, limit, before, after, "")
+	msgLog, err := fetchSummaryMessages(msgInfo.Session, channelID, limit, before, after)
 	if err != nil {
 		embed.UnknownErrorEmbed(msgInfo, err)
 		return
 	}
-	slices.Reverse(msgLog)
 
 	var sb strings.Builder
 	for _, msg := range msgLog {
@@ -94,7 +98,7 @@ func SummaryCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 	}
 
 	request := responses.ResponseNewParams{
-		Model:           "gpt-5-nano",
+		Model:           "gpt-6-luna",
 		MaxOutputTokens: openai.Int(int64(max_output_tokens)),
 		Input: responses.ResponseNewParamsInputUnion{
 			OfString: openai.String(finalText),
@@ -102,6 +106,81 @@ func SummaryCmd(msgInfo *embed.MsgInfo, msg *string, guild config.Guild) {
 	}
 
 	RunApi(msgInfo, request, config.Lang[msgInfo.Lang].Content.SummaryTitle, false, false, start)
+}
+
+type channelMessageFetcher interface {
+	ChannelMessages(channelID string, limit int, beforeID, afterID, aroundID string, options ...discordgo.RequestOption) ([]*discordgo.Message, error)
+}
+
+func fetchSummaryMessages(session channelMessageFetcher, channelID string, limit int, before, after string) ([]*discordgo.Message, error) {
+	const pageLimit = 100
+
+	var messages []*discordgo.Message
+	nextBefore := before
+	nextAfter := after
+
+	for len(messages) < limit {
+		pageSize := min(pageLimit, limit-len(messages))
+		page, err := session.ChannelMessages(channelID, pageSize, nextBefore, nextAfter, "")
+		if err != nil {
+			return nil, err
+		}
+		if len(page) == 0 {
+			break
+		}
+
+		messages = append(messages, page...)
+		if len(page) < pageSize {
+			break
+		}
+
+		if after != "" {
+			nextAfter = newestMessageID(page)
+		} else {
+			nextBefore = oldestMessageID(page)
+		}
+	}
+
+	slices.SortFunc(messages, func(a, b *discordgo.Message) int {
+		if a.Timestamp.Before(b.Timestamp) {
+			return -1
+		}
+		if a.Timestamp.After(b.Timestamp) {
+			return 1
+		}
+		return compareSnowflakeID(a.ID, b.ID)
+	})
+
+	return messages, nil
+}
+
+func oldestMessageID(messages []*discordgo.Message) string {
+	oldest := messages[0].ID
+	for _, msg := range messages[1:] {
+		if compareSnowflakeID(msg.ID, oldest) < 0 {
+			oldest = msg.ID
+		}
+	}
+	return oldest
+}
+
+func newestMessageID(messages []*discordgo.Message) string {
+	newest := messages[0].ID
+	for _, msg := range messages[1:] {
+		if compareSnowflakeID(msg.ID, newest) > 0 {
+			newest = msg.ID
+		}
+	}
+	return newest
+}
+
+func compareSnowflakeID(a, b string) int {
+	aID, aErr := strconv.ParseUint(a, 10, 64)
+	bID, bErr := strconv.ParseUint(b, 10, 64)
+	if aErr == nil && bErr == nil {
+		return cmp.Compare(aID, bID)
+	}
+	return strings.Compare(a, b)
 }
 
 func caltokens(text string) int {
@@ -118,9 +197,9 @@ func caltokens(text string) int {
 	return len(token)
 }
 
-func splitSummaryMsg(msg *string) (string, string, int, int, error) {
+func splitSummaryMsg(msg *string) (string, string, string, int, int, error) {
 	var (
-		before, after            string
+		before, after, channelID string
 		limit, max_output_tokens int
 		err                      error
 	)
@@ -128,7 +207,7 @@ func splitSummaryMsg(msg *string) (string, string, int, int, error) {
 
 	str, err := utils.SplitCommandArgs(*msg)
 	if err != nil {
-		return before, after, limit, max_output_tokens, err
+		return before, after, channelID, limit, max_output_tokens, err
 	}
 	for i := 0; i < len(str); i++ {
 		if strings.HasPrefix(str[i], "-") {
@@ -136,25 +215,31 @@ func splitSummaryMsg(msg *string) (string, string, int, int, error) {
 			case "-b":
 				val, ok := utils.CommandArgValue(str, i)
 				if !ok {
-					return before, after, limit, max_output_tokens, utils.ErrInvalidArg
+					return before, after, channelID, limit, max_output_tokens, utils.ErrInvalidArg
 				}
 				before = val
 			case "-a":
 				val, ok := utils.CommandArgValue(str, i)
 				if !ok {
-					return before, after, limit, max_output_tokens, utils.ErrInvalidArg
+					return before, after, channelID, limit, max_output_tokens, utils.ErrInvalidArg
 				}
 				after = val
+			case "-c", "--channel":
+				val, ok := utils.CommandArgValue(str, i)
+				if !ok {
+					return before, after, channelID, limit, max_output_tokens, utils.ErrInvalidArg
+				}
+				channelID = strings.TrimPrefix(strings.TrimSuffix(val, ">"), "<#")
 			case "-l":
 				val, ok := utils.CommandArgValue(str, i)
 				if !ok {
-					return before, after, limit, max_output_tokens, utils.ErrInvalidArg
+					return before, after, channelID, limit, max_output_tokens, utils.ErrInvalidArg
 				}
 				limit, err = strconv.Atoi(val)
 			case "--max_output_tokens":
 				val, ok := utils.CommandArgValue(str, i)
 				if !ok {
-					return before, after, limit, max_output_tokens, utils.ErrInvalidArg
+					return before, after, channelID, limit, max_output_tokens, utils.ErrInvalidArg
 				}
 				max_output_tokens, err = strconv.Atoi(val)
 			}
@@ -162,5 +247,5 @@ func splitSummaryMsg(msg *string) (string, string, int, int, error) {
 		}
 	}
 
-	return before, after, limit, max_output_tokens, err
+	return before, after, channelID, limit, max_output_tokens, err
 }
